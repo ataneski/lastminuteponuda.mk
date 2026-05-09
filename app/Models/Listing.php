@@ -112,6 +112,11 @@ class Listing extends Model
         return $this->hasMany(Inquiry::class);
     }
 
+    public function dailyViews(): HasMany
+    {
+        return $this->hasMany(ListingView::class)->orderBy('day');
+    }
+
     public function getPrimaryImageUrlAttribute(): ?string
     {
         return $this->images->first()?->url ?? $this->image_url;

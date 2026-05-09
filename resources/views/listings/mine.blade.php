@@ -28,18 +28,29 @@
                             </div>
                         @endif
                         <x-listing-card :listing="$listing" />
+
+                        <div class="flex items-center justify-between text-xs text-slate-600 px-1">
+                            <span title="Прегледи">👁 {{ number_format($listing->views_count) }} прегледи</span>
+                            <span title="Прашања">✉ {{ $listing->inquiries_count }} прашања</span>
+                        </div>
+
                         <div class="flex gap-2">
+                            <a href="{{ route('listings.analytics', $listing) }}"
+                                class="flex-1 inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100">
+                                Аналитика
+                            </a>
                             <a href="{{ route('listings.edit', $listing) }}"
                                 class="flex-1 inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100">
                                 Уреди
                             </a>
-                            <form method="POST" action="{{ route('listings.destroy', $listing) }}" class="flex-1"
+                            <form method="POST" action="{{ route('listings.destroy', $listing) }}"
                                 onsubmit="return confirm('Сигурно сакате да го избришете овој оглас?')">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit"
-                                    class="w-full inline-flex items-center justify-center rounded-md border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50">
-                                    Избриши
+                                    class="inline-flex items-center justify-center rounded-md border border-red-300 bg-white px-2.5 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50"
+                                    title="Избриши">
+                                    🗑
                                 </button>
                             </form>
                         </div>

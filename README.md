@@ -52,6 +52,7 @@ composer run dev
 | `/agencija/profil` | `agency.profile.edit` | auth | Бренд (лого, cover, бои, slug, контакт, IG/FB handles) |
 | `/agencija/analitika` | `agency.analytics` | auth+pro | Прегледи, прашања, конверзија, топ огласи |
 | `/agencija/oglas/{id}/uredi` | `listings.edit` | auth+owner | Уредување — само сопственикот |
+| `/agencija/oglas/{id}/analitika` | `listings.analytics` | auth+owner+pro | Per-listing аналитика со 7/30/90-дневен chart |
 | `/agencija/oglas/{id}` (DELETE) | `listings.destroy` | auth+owner | Бришење — само сопственикот |
 | `/agencija/moi-oglasi` | `listings.mine` | auth | Сите огласи на најавената агенција |
 | `/admin` | `admin.index` | admin | Сите агенции, tier ажурирање |
@@ -97,6 +98,9 @@ composer run dev
   (sender, body, IP hash); `views_count` се инкрементира на детали
 - **Analytics dashboard** за Pro: прегледи, прашања, конверзија, топ
   огласи (gated со `isPro()`)
+- **Per-listing analytics** на `/agencija/oglas/{id}/analitika` —
+  7/30/90-дневен SVG bar chart, KPI картички, листа на прашања во
+  периодот; Free корисниците гледаат preview со lifetime бројки
 - **Auto-generated IG card** (1080×1080 PNG) — `SocialCardGenerator`
   со DejaVu Sans, accent color од агенцискиот профил
 - **Admin tool** за manual активирање tier + featured boost (gated
@@ -114,7 +118,7 @@ Self-serve платежи нема (по дизајн, Phase 2). Активир�
 php artisan test
 ```
 
-124 теста (330 assertions) во `tests/Feature/`:
+136 теста (358 assertions) во `tests/Feature/`:
 
 - `ListingPagesTest` — рендерирање, 404, auth gating, isolation
 - `ListingFormTest` — валидација, создавање, features, image upload
@@ -133,6 +137,9 @@ php artisan test
   badge + sort, view counter (без owner views), inquiry logging,
   analytics gating, admin tier update + feature/unfeature, social
   card 1080×1080 PNG, UTM helper
+- `ListingAnalyticsTest` — per-listing analytics: auth/policy gating,
+  Pro vs free preview, daily view aggregation + cascade, time-range
+  switching, inquiry filtering by range, owner badges на /moi-oglasi
 - Breeze auth тестови (registration, login, password reset, profile)
 
 ## Безбедност (по дизајн)

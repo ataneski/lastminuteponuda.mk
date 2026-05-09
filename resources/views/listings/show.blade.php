@@ -50,14 +50,16 @@
     <article class="mx-auto max-w-4xl px-4 py-8">
         <div class="flex items-center justify-between flex-wrap gap-2">
             <a href="{{ route('listings.index') }}" class="text-sm text-sky-700 hover:underline">← Назад на огласи</a>
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 flex-wrap">
                 @can('update', $listing)
+                    <a href="{{ route('listings.analytics', $listing) }}"
+                        class="text-sm font-medium text-sky-700 hover:underline">📊 Аналитика</a>
                     <a href="{{ route('listings.social-card', $listing) }}" download
                         class="text-sm font-medium text-sky-700 hover:underline">
                         ⤓ Сподели на IG (1080×1080)
                     </a>
                     <a href="{{ route('listings.edit', $listing) }}"
-                        class="text-sm font-medium text-sky-700 hover:underline">Уреди го овој оглас →</a>
+                        class="text-sm font-medium text-sky-700 hover:underline">Уреди →</a>
                 @endcan
             </div>
         </div>

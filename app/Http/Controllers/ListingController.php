@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Listing;
+use App\Models\ListingView as ListingViewRow;
 use App\Services\SocialCardGenerator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Response;
@@ -40,6 +41,13 @@ class ListingController extends Controller
         // Don't count owner views or admin/bot views in the metric.
         if (! auth()->check() || auth()->id() !== $listing->user_id) {
             $listing->incrementQuietly('views_count');
+
+            $today = now()->toDateString();
+            $row = ListingViewRow::firstOrCreate(
+                ['listing_id' => $listing->id, 'day' => $today],
+                ['count' => 0]
+            );
+            $row->increment('count');
         }
 
         return view('listings.show', compact('listing'));
@@ -49,10 +57,18 @@ class ListingController extends Controller
     {
         $listings = auth()->user()
             ->listings()
+            ->withCount('inquiries')
             ->orderByDesc('created_at')
             ->paginate(12);
 
         return view('listings.mine', compact('listings'));
+    }
+
+    public function analytics(Listing $listing): View
+    {
+        $this->authorize('update', $listing);
+
+        return view('listings.analytics', compact('listing'));
     }
 
     public function edit(Listing $listing): View

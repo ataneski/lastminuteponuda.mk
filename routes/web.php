@@ -22,6 +22,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/agencija/profil', [AgencyController::class, 'edit'])->name('agency.profile.edit');
     Route::get('/agencija/analitika', [AgencyController::class, 'analytics'])->name('agency.analytics');
     Route::get('/agencija/oglas/{listing}/uredi', [ListingController::class, 'edit'])->name('listings.edit');
+    Route::get('/agencija/oglas/{listing}/analitika', [ListingController::class, 'analytics'])->name('listings.analytics');
     Route::delete('/agencija/oglas/{listing}', [ListingController::class, 'destroy'])->name('listings.destroy');
 
     Route::redirect('/dashboard', '/agencija/moi-oglasi')->name('dashboard');

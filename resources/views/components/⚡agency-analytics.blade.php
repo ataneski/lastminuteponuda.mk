@@ -90,7 +90,7 @@ new class extends Component
                     @foreach ($topListings as $l)
                         <tr class="border-t border-slate-100">
                             <td class="px-4 py-2">
-                                <a href="{{ route('listings.show', $l) }}" class="font-medium text-sky-700 hover:underline">
+                                <a href="{{ route('listings.analytics', $l) }}" class="font-medium text-sky-700 hover:underline">
                                     {{ \Illuminate\Support\Str::limit($l->title, 60) }}
                                 </a>
                             </td>
