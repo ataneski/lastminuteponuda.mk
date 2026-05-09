@@ -3,9 +3,20 @@
 use App\Models\Listing;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 new class extends Component
 {
+    use WithFileUploads;
+
+    public function mount(): void
+    {
+        if ($user = auth()->user()) {
+            $this->agency_name = $user->name;
+            $this->agency_contact = $user->email;
+        }
+    }
+
     #[Validate('required|string|max:120')]
     public string $agency_name = '';
 
@@ -27,10 +38,10 @@ new class extends Component
     #[Validate('required|integer|min:1|max:5')]
     public int $hotel_stars = 4;
 
-    #[Validate('required|string')]
+    #[Validate('required|in:noBoard,breakfast,halfBoard,fullBoard,allInclusive,ultraAllInclusive')]
     public string $board_type = 'allInclusive';
 
-    #[Validate('required|string')]
+    #[Validate('required|in:bus,plane,ownTransport,ferry')]
     public string $transport = 'plane';
 
     #[Validate('required|date|after_or_equal:today')]
@@ -57,6 +68,9 @@ new class extends Component
     #[Validate('nullable|url|max:500')]
     public string $image_url = '';
 
+    #[Validate('nullable|image|max:4096')]
+    public $image_file = null;
+
     /** @var array<int, string> */
     public array $features = [];
 
@@ -76,8 +90,6 @@ new class extends Component
     public function rules(): array
     {
         return [
-            'board_type' => ['required', 'in:'.implode(',', array_keys(Listing::BOARD_TYPES))],
-            'transport' => ['required', 'in:'.implode(',', array_keys(Listing::TRANSPORTS))],
             'features' => ['array'],
             'features.*' => ['string', 'max:60'],
         ];
@@ -107,6 +119,15 @@ new class extends Component
     public function save()
     {
         $data = $this->validate();
+
+        if ($this->image_file) {
+            $path = $this->image_file->store('listings', 'public');
+            $data['image_url'] = \Storage::url($path);
+        }
+
+        unset($data['image_file']);
+
+        $data['user_id'] = auth()->id();
 
         $listing = Listing::create($data);
 
@@ -275,8 +296,21 @@ new class extends Component
                     @error('description') <p class="error">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="label">URL на слика (опционално)</label>
+                    <label class="label">Слика (опционално)</label>
+                    <input wire:model="image_file" type="file" accept="image/*" class="input">
+                    <p class="mt-1 text-xs text-slate-500">JPG/PNG/WEBP, до 4 MB.</p>
+                    @error('image_file') <p class="error">{{ $message }}</p> @enderror
+                    <div wire:loading wire:target="image_file" class="mt-1 text-xs text-slate-500">
+                        Се качува сликата…
+                    </div>
+                    @if ($image_file)
+                        <img src="{{ $image_file->temporaryUrl() }}" alt="Преглед" class="mt-2 h-32 rounded-md object-cover">
+                    @endif
+                </div>
+                <div>
+                    <label class="label">…или URL на слика</label>
                     <input wire:model.blur="image_url" type="url" class="input" placeholder="https://…">
+                    <p class="mt-1 text-xs text-slate-500">Ако веќе имаш слика онлајн.</p>
                     @error('image_url') <p class="error">{{ $message }}</p> @enderror
                 </div>
             </div>

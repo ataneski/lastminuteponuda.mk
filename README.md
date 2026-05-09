@@ -8,12 +8,14 @@
 ## Стек
 
 - Laravel 13 (PHP 8.3+)
+- Laravel Breeze за auth (register / login / password reset / profile)
 - Livewire 4 (single-file components) за интерактивната агенциска форма и
   пребарувањето во индексот на огласи
 - Blade за server-rendered HTML страниците
-- Tailwind CSS 4 (со Vite)
+- Tailwind CSS 4 + Alpine.js (со Vite)
+- Pest 4 за тестови
 - SQLite за развој (`database/database.sqlite`); лесно се прешалтува на
-  MySQL/PostgreSQL преку `.env`
+  PostgreSQL/MySQL преку `.env` (види блок во `.env.example`)
 
 ## Стартување локално
 
@@ -36,12 +38,16 @@ composer run dev
 
 ## Главни рути
 
-| URL | Име | Опис |
-| --- | --- | --- |
-| `/` | `home` | Hero + последни 6 огласи |
-| `/oglasi` | `listings.index` | Сите огласи + Livewire пребарување/филтер |
-| `/oglasi/{id}` | `listings.show` | Детали за оглас + контакт со агенција |
-| `/agencija/nov-oglas` | `listings.create` | Livewire форма за нов оглас |
+| URL | Име | Auth | Опис |
+| --- | --- | --- | --- |
+| `/` | `home` | public | Hero + последни 6 огласи |
+| `/oglasi` | `listings.index` | public | Сите огласи + Livewire пребарување/филтер |
+| `/oglasi/{id}` | `listings.show` | public | Детали за оглас + контакт со агенција |
+| `/login`, `/register` | Breeze | public | Auth екрани |
+| `/agencija/nov-oglas` | `listings.create` | auth | Livewire форма за нов оглас |
+| `/agencija/moi-oglasi` | `listings.mine` | auth | Огласи на најавената агенција |
+| `/dashboard` | `dashboard` | auth | Redirect → `listings.mine` (за Breeze) |
+| `/profile` | `profile.edit` | auth | Профил на корисникот |
 
 ## Модел `Listing`
 
@@ -67,11 +73,39 @@ composer run dev
 - `resources/views/components/⚡listings-index.blade.php` — листа со
   пагинација и live пребарување (debounced URL state)
 
+## Тестови
+
+```bash
+php artisan test
+```
+
+43 теста (10 за Livewire формата, 8 за page рендерирање, 25 за Breeze
+auth/profile). Покриваат:
+- Validation на сите полиња (required, in:, date order, image size)
+- Создавање оглас со auth user_id и features
+- Image upload + storage assertion
+- Auth gating на agency рутите
+- Изолација: едниот корисник не ги гледа туѓите огласи во „Мои огласи"
+
 ## Безбедност (по дизајн)
 
-- CSRF token на сите Livewire requests (built-in)
-- Server-side валидација на сите полиња (`#[Validate]` на компонентата)
+- CSRF token на сите Livewire и Blade форми (built-in)
+- Server-side валидација на сите полиња (`#[Validate]` атрибути)
 - Eloquent + параметризирани queries — нема raw SQL
-- `$fillable` ограничен модел (без `$guarded = []`)
-- Без auth логика во middleware (избегнат CVE-2025-29927 паттерн —
-  важи само за Next.js, но истиот принцип го применуваме тука)
+- `$fillable` ограничен на моделот (без `$guarded = []`)
+- Auth gate во рутите (`middleware('auth')`), не во middleware/HTTP-слој —
+  избегнат паттернот од CVE-2025-29927
+- Lозинките се хеширани преку `bcrypt` (Laravel default)
+- Upload-ите се валидираат како `image|max:4096` пред да стигнат до диск
+- Симлинк `public/storage` → `storage/app/public` (без exposed
+  системски патишта)
+
+## Префрлање на Postgres
+
+1. Во `.env` закоментирај `DB_CONNECTION=sqlite` и откоментирај го
+   Postgres блокот
+2. Постави Postgres база и корисник
+3. `php artisan migrate:fresh --seed`
+
+Без промени на код — сите queries поминуваат низ Eloquent и работат на
+SQLite, MySQL и Postgres подеднакво.

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Listing extends Model
 {
@@ -29,6 +30,7 @@ class Listing extends Model
     public const CURRENCIES = ['EUR', 'MKD', 'USD'];
 
     protected $fillable = [
+        'user_id',
         'agency_name',
         'agency_contact',
         'title',
@@ -60,6 +62,11 @@ class Listing extends Model
             'price_per_person' => 'integer',
             'available_seats' => 'integer',
         ];
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function getBoardLabelAttribute(): string

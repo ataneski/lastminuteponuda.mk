@@ -18,7 +18,20 @@
             </a>
             <nav class="flex items-center gap-3">
                 <a href="{{ route('listings.index') }}" class="text-sm font-medium text-slate-600 hover:text-slate-900">Огласи</a>
-                <a href="{{ route('listings.create') }}" class="btn-primary">+ Нов оглас</a>
+
+                @auth
+                    <a href="{{ route('listings.mine') }}" class="text-sm font-medium text-slate-600 hover:text-slate-900">Мои огласи</a>
+                    <a href="{{ route('listings.create') }}" class="btn-primary">+ Нов оглас</a>
+                    <form method="POST" action="{{ route('logout') }}" class="inline">
+                        @csrf
+                        <button type="submit" class="text-sm font-medium text-slate-600 hover:text-slate-900">
+                            Одјави се
+                        </button>
+                    </form>
+                @else
+                    <a href="{{ route('login') }}" class="text-sm font-medium text-slate-600 hover:text-slate-900">Најави се</a>
+                    <a href="{{ route('register') }}" class="btn-primary">Регистрирај агенција</a>
+                @endauth
             </nav>
         </div>
     </header>

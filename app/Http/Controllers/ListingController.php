@@ -31,4 +31,14 @@ class ListingController extends Controller
     {
         return view('listings.show', compact('listing'));
     }
+
+    public function mine(): View
+    {
+        $listings = auth()->user()
+            ->listings()
+            ->orderByDesc('created_at')
+            ->paginate(12);
+
+        return view('listings.mine', compact('listings'));
+    }
 }
