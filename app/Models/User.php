@@ -13,6 +13,8 @@ use Illuminate\Support\Str;
 
 #[Fillable([
     'name', 'email', 'password',
+    'first_name', 'last_name', 'role',
+    'marketing_consent', 'marketing_consent_at',
     'slug', 'display_name', 'tagline', 'description',
     'logo_url', 'cover_url', 'website', 'phone',
     'address', 'accent_color',
@@ -34,6 +36,10 @@ class User extends Authenticatable
 
     public const DEFAULT_ACCENT = '#0284c7';
 
+    public const ROLE_AGENCY = 'agency';
+
+    public const ROLE_CUSTOMER = 'customer';
+
     public const TIER_FREE = 'free';
     public const TIER_PRO = 'pro';
     public const TIER_PREMIUM = 'premium';
@@ -49,7 +55,10 @@ class User extends Authenticatable
     protected static function booted(): void
     {
         static::creating(function (self $user) {
-            $user->slug ??= self::generateUniqueSlug($user->name ?? 'agencija');
+            // Customers don't need a public slug (no /agencija/{slug} page).
+            if (($user->role ?? self::ROLE_AGENCY) !== self::ROLE_CUSTOMER) {
+                $user->slug ??= self::generateUniqueSlug($user->name ?? 'agencija');
+            }
         });
     }
 
@@ -60,8 +69,29 @@ class User extends Authenticatable
             'password' => 'hashed',
             'subscription_until' => 'datetime',
             'is_admin' => 'boolean',
+            'marketing_consent' => 'boolean',
+            'marketing_consent_at' => 'datetime',
             'wa_paired_at' => 'datetime',
         ];
+    }
+
+    public function isAgency(): bool
+    {
+        return $this->role === self::ROLE_AGENCY;
+    }
+
+    public function isCustomer(): bool
+    {
+        return $this->role === self::ROLE_CUSTOMER;
+    }
+
+    public function getFullNameAttribute(): string
+    {
+        if ($this->first_name || $this->last_name) {
+            return trim("{$this->first_name} {$this->last_name}");
+        }
+
+        return $this->name ?? '';
     }
 
     public function whatsappSessions(): HasMany

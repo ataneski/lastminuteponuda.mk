@@ -6,14 +6,16 @@ test('registration screen can be rendered', function () {
     $response->assertStatus(200);
 });
 
-test('new users can register', function () {
+test('new customer users can register', function () {
     $response = $this->post('/register', [
-        'name' => 'Test User',
+        'first_name' => 'Test',
+        'last_name' => 'User',
+        'phone' => '+38970000000',
         'email' => 'test@example.com',
-        'password' => 'password',
-        'password_confirmation' => 'password',
+        'password' => 'StrongPass1!',
+        'password_confirmation' => 'StrongPass1!',
     ]);
 
     $this->assertAuthenticated();
-    $response->assertRedirect(route('dashboard', absolute: false));
+    $response->assertRedirect('/');
 });

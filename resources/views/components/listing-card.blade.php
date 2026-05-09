@@ -40,8 +40,17 @@
                 {{ $listing->departure_date->format('d.m.Y') }} — {{ $listing->return_date->format('d.m.Y') }}
             </div>
             <div class="text-right">
-                <div class="text-lg font-bold text-sky-700">{{ $listing->formatted_price }}</div>
-                <div class="text-xs text-slate-500">по лице</div>
+                @auth
+                    <div class="text-lg font-bold text-sky-700">{{ $listing->formatted_price }}</div>
+                    <div class="text-xs text-slate-500">по лице</div>
+                @else
+                    <div class="text-sm font-semibold text-slate-400 select-none" aria-hidden="true">
+                        ●●● {{ $listing->currency }}
+                    </div>
+                    <div class="text-xs text-sky-700 underline-offset-2 hover:underline">
+                        Логирај се за цена
+                    </div>
+                @endauth
             </div>
         </div>
     </div>

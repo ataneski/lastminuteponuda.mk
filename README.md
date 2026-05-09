@@ -47,7 +47,10 @@ composer run dev
 | `/agencija/{slug}` | `agency.show` | public | Јавна страница на агенција со лого, бои, активни огласи |
 | `/planovi` | `upgrade` | public | Free / Pro / Premium pricing страница |
 | `/sitemap.xml` | `sitemap` | public | Динамичен sitemap |
-| `/login`, `/register` | Breeze | public | Auth екрани |
+| `/login` | Breeze | public | Логирање — redirect по role |
+| `/register` | `register` | public | Регистрација на корисник (име, презиме, телефон, email) |
+| `/register-agencija` | `register.agency` | public | Регистрација на агенција |
+| `/moj-profil` | `customer.profile` | auth (customer) | Уредување на корисник + marketing consent |
 | `/agencija/nov-oglas` | `listings.create` | auth | Нов оглас (рачно — Free cap = 3 активни + drafts) |
 | `/agencija/nov-oglas-ai` | `listings.create-ai` | auth | ✨ AI wizard: upload слики → CPT → AI title + image order → publish |
 | `/webhooks/whatsapp` | `whatsapp.handle` | public (HMAC) | Meta Cloud API webhook за upload од WhatsApp |
@@ -140,13 +143,33 @@ php artisan listings:purge-stale-drafts          # daily 03:00 via Schedule
 php artisan ai:dry-run-listing {id}              # local-only prompt iteration
 ```
 
+## Корисници и приватност
+
+Платформата има два типа сметки разделени преку `users.role`:
+
+- **`agency`** — туристичка агенција. Поставува огласи, има профил со
+  лого/боја/контакт, користи AI wizard и WhatsApp ingestion.
+- **`customer`** — крај посетител. Регистрира се со име, презиме, телефон,
+  email + опционален marketing consent (датум на consent се чува за GDPR).
+
+**Што се крие од гости:**
+- Цена на оглас (на индекс и детали) → се покажува placeholder + CTA „Регистрирај се за цена"
+- Контакт на агенција (телефон/email на детали) → placeholder + CTA
+- Inquiry форма → CTA „Регистрирај се"
+
+Описот, фотките, дестинацијата, хотелот, термините и пансион/превоз се
+видливи јавно — за SEO + туркање на корисникот да се регистрира.
+
+Маркетинг база: `users.marketing_consent` + `marketing_consent_at` за
+аудит. За newsletter/SMS пушки пуштете `User::where('role','customer')->where('marketing_consent', true)->get()`.
+
 ## Тестови
 
 ```bash
 php artisan test
 ```
 
-168 теста (449 assertions) во `tests/Feature/`:
+185 теста (510 assertions) во `tests/Feature/`:
 
 - `ListingPagesTest` — рендерирање, 404, auth gating, isolation
 - `ListingFormTest` — валидација, создавање, features, image upload
@@ -177,6 +200,9 @@ php artisan test
   ingestion, stop-word finalization, FinalizeJob
 - `AiPolishTest` — draft cap counting, stale-draft purge command,
   dry-run guard rails
+- `CustomerRegistrationTest` — customer/agency registration flows,
+  role-based login redirect, price/contact gating, inquiry CTA,
+  customer profile + marketing consent timestamping
 - Breeze auth тестови (registration, login, password reset, profile)
 
 ## Безбедност (по дизајн)

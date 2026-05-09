@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AgencyController;
+use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\ListingController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\WhatsAppWebhookController;
@@ -35,11 +36,21 @@ Route::middleware('auth')->group(function () {
     Route::get('/agencija/oglas/{listing}/analitika', [ListingController::class, 'analytics'])->name('listings.analytics');
     Route::delete('/agencija/oglas/{listing}', [ListingController::class, 'destroy'])->name('listings.destroy');
 
-    Route::redirect('/dashboard', '/agencija/moi-oglasi')->name('dashboard');
+    // Default landing for authenticated users; differs by role.
+    Route::get('/dashboard', function () {
+        $user = auth()->user();
+
+        return $user->isAgency()
+            ? redirect()->route('listings.mine')
+            : redirect()->route('customer.profile');
+    })->name('dashboard');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    Route::get('/moj-profil', [CustomerController::class, 'profile'])->name('customer.profile');
+    Route::patch('/moj-profil', [CustomerController::class, 'updateProfile'])->name('customer.profile.update');
 });
 
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {

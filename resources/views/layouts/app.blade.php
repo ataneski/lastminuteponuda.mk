@@ -50,13 +50,20 @@
                 <a href="{{ route('listings.index') }}" class="text-sm font-medium text-slate-600 hover:text-slate-900">Огласи</a>
 
                 @auth
-                    <a href="{{ route('listings.mine') }}" class="text-sm font-medium text-slate-600 hover:text-slate-900">Мои огласи</a>
-                    <a href="{{ route('agency.analytics') }}" class="text-sm font-medium text-slate-600 hover:text-slate-900">Аналитика</a>
-                    <a href="{{ route('agency.profile.edit') }}" class="text-sm font-medium text-slate-600 hover:text-slate-900">Профил</a>
-                    @if (auth()->user()->is_admin)
+                    @php $u = auth()->user(); @endphp
+                    @if ($u->isAgency())
+                        <a href="{{ route('listings.mine') }}" class="text-sm font-medium text-slate-600 hover:text-slate-900">Мои огласи</a>
+                        <a href="{{ route('agency.analytics') }}" class="text-sm font-medium text-slate-600 hover:text-slate-900">Аналитика</a>
+                        <a href="{{ route('agency.profile.edit') }}" class="text-sm font-medium text-slate-600 hover:text-slate-900">Профил</a>
+                    @else
+                        <a href="{{ route('customer.profile') }}" class="text-sm font-medium text-slate-600 hover:text-slate-900">Мој профил</a>
+                    @endif
+                    @if ($u->is_admin)
                         <a href="{{ route('admin.index') }}" class="text-sm font-medium text-purple-700 hover:text-purple-900">Admin</a>
                     @endif
-                    <a href="{{ route('listings.create-ai') }}" class="btn-primary">✨ Нов оглас (AI)</a>
+                    @if ($u->isAgency())
+                        <a href="{{ route('listings.create-ai') }}" class="btn-primary">✨ Нов оглас (AI)</a>
+                    @endif
                     <form method="POST" action="{{ route('logout') }}" class="inline">
                         @csrf
                         <button type="submit" class="text-sm font-medium text-slate-600 hover:text-slate-900">

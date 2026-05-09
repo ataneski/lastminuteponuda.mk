@@ -100,10 +100,29 @@
                         </p>
                     </div>
                     <div class="text-right">
-                        <div class="text-3xl font-bold text-sky-700">{{ $listing->formatted_price }}</div>
-                        <div class="text-sm text-slate-500">по лице</div>
+                        @auth
+                            <div class="text-3xl font-bold text-sky-700">{{ $listing->formatted_price }}</div>
+                            <div class="text-sm text-slate-500">по лице</div>
+                        @else
+                            <div class="text-2xl font-semibold text-slate-400 select-none" aria-hidden="true">●●● {{ $listing->currency }}</div>
+                            <a href="{{ route('register') }}"
+                                class="inline-block mt-1 text-xs text-white bg-sky-600 hover:bg-sky-700 px-3 py-1 rounded-md font-medium">
+                                Регистрирај се за цена
+                            </a>
+                        @endauth
                     </div>
                 </div>
+
+                @guest
+                    <div class="mt-6 rounded-md border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
+                        <strong>Цените и контактот се видливи само за регистрирани корисници.</strong>
+                        Регистрирајте се за 30 секунди со име, телефон и email и веднаш ќе ги видите.
+                        <div class="mt-3 flex gap-2 flex-wrap">
+                            <a href="{{ route('register') }}" class="btn-primary">Регистрирај се →</a>
+                            <a href="{{ route('login') }}" class="btn-secondary">Веќе имам сметка</a>
+                        </div>
+                    </div>
+                @endguest
 
                 <dl class="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div>
@@ -159,7 +178,14 @@
                                 <p class="text-slate-900 font-medium">
                                     {{ $listing->user->brand_name ?? $listing->agency_name }}
                                 </p>
-                                <p class="text-slate-700">{{ $listing->agency_contact }}</p>
+                                @auth
+                                    <p class="text-slate-700">{{ $listing->agency_contact }}</p>
+                                @else
+                                    <p class="text-slate-400 select-none" aria-hidden="true">●●●●●●●● ●● ●●</p>
+                                    <a href="{{ route('register') }}" class="text-xs text-sky-700 hover:underline">
+                                        Регистрирај се за контакт →
+                                    </a>
+                                @endauth
                             </div>
                         </div>
                         @if ($listing->user)
@@ -169,11 +195,25 @@
                     </div>
                 </section>
 
-                @if (! auth()->check() || auth()->id() !== $listing->user_id)
-                    <div class="mt-6">
-                        <livewire:listing-inquiry :listing="$listing" />
+                @auth
+                    @if (auth()->id() !== $listing->user_id)
+                        <div class="mt-6">
+                            <livewire:listing-inquiry :listing="$listing" />
+                        </div>
+                    @endif
+                @else
+                    <div class="mt-6 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+                        <h2 class="text-lg font-semibold text-slate-900">Прашајте ја агенцијата</h2>
+                        <p class="text-sm text-slate-600 mt-1">
+                            За да испратите прашање, потребно е да сте регистриран корисник.
+                            Така агенцијата може да ви одговори директно.
+                        </p>
+                        <div class="mt-4 flex gap-2 flex-wrap">
+                            <a href="{{ route('register') }}" class="btn-primary">Регистрирај се →</a>
+                            <a href="{{ route('login') }}" class="btn-secondary">Логирај се</a>
+                        </div>
                     </div>
-                @endif
+                @endauth
             </div>
         </div>
     </article>

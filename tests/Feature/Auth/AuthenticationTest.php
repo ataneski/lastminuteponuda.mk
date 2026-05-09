@@ -9,6 +9,8 @@ test('login screen can be rendered', function () {
 });
 
 test('users can authenticate using the login screen', function () {
+    // UserFactory defaults to role=agency (via migration default), so the
+    // post-login redirect lands on listings.mine.
     $user = User::factory()->create();
 
     $response = $this->post('/login', [
@@ -17,7 +19,7 @@ test('users can authenticate using the login screen', function () {
     ]);
 
     $this->assertAuthenticated();
-    $response->assertRedirect(route('dashboard', absolute: false));
+    $response->assertRedirect(route('listings.mine'));
 });
 
 test('users can not authenticate with invalid password', function () {

@@ -28,7 +28,16 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        // Default landing depends on the role:
+        //   - agency  → their listings dashboard
+        //   - customer → home (where prices are now visible)
+        // intended() preserves any URL the user was bounced from.
+        $user = $request->user();
+        $default = $user?->isAgency()
+            ? route('listings.mine')
+            : '/';
+
+        return redirect()->intended($default);
     }
 
     /**

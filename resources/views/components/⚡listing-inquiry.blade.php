@@ -33,6 +33,13 @@ new class extends Component
     public function mount(Listing $listing): void
     {
         $this->listing = $listing;
+
+        // Pre-fill from the authenticated customer so they don't retype.
+        if ($u = auth()->user()) {
+            $this->name = $u->full_name ?: $u->name ?? '';
+            $this->email = $u->email;
+            $this->phone = $u->phone ?? '';
+        }
     }
 
     public function submit()
