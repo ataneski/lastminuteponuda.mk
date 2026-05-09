@@ -28,6 +28,7 @@ class ListingSeeder extends Seeder
             'description' => 'Last minute понуда за лето во Анталија. Луксузен 5* хотел со ultra all inclusive услуга, директно на плажа.',
             'features' => ['Базен', 'Плажа на 5 мин', 'Wi-Fi', 'Анимација за деца', 'Спа центар'],
             'image_url' => 'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=1200',
+            'published_at' => now(),
         ]);
 
         Listing::create([

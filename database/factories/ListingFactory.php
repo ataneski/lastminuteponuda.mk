@@ -38,6 +38,12 @@ class ListingFactory extends Factory
                 $this->faker->numberBetween(2, 5)
             ),
             'image_url' => null,
+            'published_at' => now(),
         ];
+    }
+
+    public function draft(): static
+    {
+        return $this->state(fn () => ['published_at' => null]);
     }
 }

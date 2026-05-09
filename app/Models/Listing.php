@@ -34,6 +34,9 @@ class Listing extends Model
         'user_id',
         'expires_at',
         'featured_until',
+        'published_at',
+        'ai_generated_at',
+        'ai_raw_response',
         'agency_name',
         'agency_contact',
         'title',
@@ -61,6 +64,9 @@ class Listing extends Model
             'return_date' => 'date',
             'expires_at' => 'datetime',
             'featured_until' => 'datetime',
+            'published_at' => 'datetime',
+            'ai_generated_at' => 'datetime',
+            'ai_raw_response' => 'array',
             'features' => 'array',
             'hotel_stars' => 'integer',
             'nights' => 'integer',
@@ -70,11 +76,36 @@ class Listing extends Model
         ];
     }
 
+    /**
+     * Active = published AND not expired. Drafts (published_at IS NULL)
+     * are explicitly excluded from public views.
+     */
     public function scopeActive($query)
     {
-        return $query->where(function ($q) {
-            $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
-        });
+        return $query
+            ->whereNotNull('published_at')
+            ->where(function ($q) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            });
+    }
+
+    public function scopeDraft($query)
+    {
+        return $query->whereNull('published_at');
+    }
+
+    public function isDraft(): bool
+    {
+        return $this->published_at === null;
+    }
+
+    public function publish(): self
+    {
+        if ($this->published_at === null) {
+            $this->forceFill(['published_at' => now()])->save();
+        }
+
+        return $this;
     }
 
     public function scopeFeatured($query)

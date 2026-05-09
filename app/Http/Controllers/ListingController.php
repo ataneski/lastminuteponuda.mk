@@ -34,12 +34,14 @@ class ListingController extends Controller
 
     public function show(Listing $listing): View
     {
-        if ($listing->isExpired() && (! auth()->check() || $listing->user_id !== auth()->id())) {
+        $hidden = $listing->isExpired() || $listing->isDraft();
+        if ($hidden && (! auth()->check() || $listing->user_id !== auth()->id())) {
             abort(404);
         }
 
         // Don't count owner views or admin/bot views in the metric.
-        if (! auth()->check() || auth()->id() !== $listing->user_id) {
+        // Drafts also don't accrue counts (the agency hasn't published yet).
+        if ((! auth()->check() || auth()->id() !== $listing->user_id) && ! $listing->isDraft()) {
             $listing->incrementQuietly('views_count');
 
             $today = now()->toDateString();
