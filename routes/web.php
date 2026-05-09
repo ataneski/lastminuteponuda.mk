@@ -4,6 +4,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AgencyController;
 use App\Http\Controllers\ListingController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\WhatsAppWebhookController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [ListingController::class, 'home'])->name('home');
@@ -13,6 +14,14 @@ Route::get('/oglasi/{listing}', [ListingController::class, 'show'])->name('listi
 Route::get('/oglasi/{listing}/social-card.png', [ListingController::class, 'socialCard'])->name('listings.social-card');
 
 Route::get('/sitemap.xml', [ListingController::class, 'sitemap'])->name('sitemap');
+
+// WhatsApp Cloud API webhook (no auth — signature-verified by controller).
+// CSRF is excepted in bootstrap/app.php. Webhooks always return 200 to
+// avoid Meta retry storms; spoofing is silently dropped + logged.
+Route::get('/webhooks/whatsapp', [WhatsAppWebhookController::class, 'verify'])
+    ->name('whatsapp.verify');
+Route::post('/webhooks/whatsapp', [WhatsAppWebhookController::class, 'handle'])
+    ->name('whatsapp.handle');
 
 Route::view('/planovi', 'agency.upgrade')->name('upgrade');
 

@@ -18,6 +18,7 @@ use Illuminate\Support\Str;
     'address', 'accent_color',
     'subscription_tier', 'subscription_until', 'is_admin',
     'instagram_handle', 'facebook_url',
+    'wa_phone_e164', 'wa_pairing_code', 'wa_paired_at',
 ])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
@@ -59,7 +60,30 @@ class User extends Authenticatable
             'password' => 'hashed',
             'subscription_until' => 'datetime',
             'is_admin' => 'boolean',
+            'wa_paired_at' => 'datetime',
         ];
+    }
+
+    public function whatsappSessions(): HasMany
+    {
+        return $this->hasMany(WhatsAppIntakeSession::class);
+    }
+
+    public function isWhatsAppPaired(): bool
+    {
+        return $this->wa_phone_e164 !== null && $this->wa_paired_at !== null;
+    }
+
+    public function regenerateWhatsAppPairingCode(): string
+    {
+        $code = strtoupper(\Illuminate\Support\Str::random(6));
+        $this->forceFill([
+            'wa_pairing_code' => $code,
+            'wa_phone_e164' => null,
+            'wa_paired_at' => null,
+        ])->save();
+
+        return $code;
     }
 
     public function listings(): HasMany

@@ -118,6 +118,22 @@ new class extends Component
     {
         auth()->user()->update(['cover_url' => null]);
     }
+
+    public function regenerateWhatsAppCode(): void
+    {
+        auth()->user()->regenerateWhatsAppPairingCode();
+        session()->flash('status', 'Нов код за WhatsApp е генериран.');
+    }
+
+    public function unpairWhatsApp(): void
+    {
+        auth()->user()->forceFill([
+            'wa_phone_e164' => null,
+            'wa_paired_at' => null,
+            'wa_pairing_code' => null,
+        ])->save();
+        session()->flash('status', 'WhatsApp бројот е одврзан.');
+    }
 };
 ?>
 
@@ -268,4 +284,42 @@ new class extends Component
             </button>
         </div>
     </form>
+
+    {{-- WhatsApp pairing (extra section, separate from the save form) --}}
+    @php $u = auth()->user(); @endphp
+    <section class="mt-8 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 class="mb-2 text-lg font-semibold text-slate-900">WhatsApp директен upload</h2>
+        <p class="text-sm text-slate-600">
+            Парирајте го вашиот WhatsApp број за да можете да праќате слики директно.
+            Така можете брзо да поставувате огласи од терен.
+        </p>
+
+        @if ($u->isWhatsAppPaired())
+            <div class="mt-4 flex items-center justify-between gap-3 flex-wrap rounded-md bg-emerald-50 border border-emerald-200 p-3">
+                <div>
+                    <p class="text-sm font-medium text-emerald-900">Парирано ✓</p>
+                    <p class="text-xs text-emerald-800">Број: <strong>{{ $u->wa_phone_e164 }}</strong> · од {{ $u->wa_paired_at->format('d.m.Y') }}</p>
+                </div>
+                <button type="button" wire:click="unpairWhatsApp" class="text-sm text-red-700 hover:underline">
+                    Одврзи број
+                </button>
+            </div>
+        @else
+            <div class="mt-4 rounded-md bg-slate-50 border border-slate-200 p-4">
+                <p class="text-sm font-medium text-slate-700 mb-1">Ваш код за парирање:</p>
+                <div class="flex items-center gap-3 flex-wrap">
+                    <code class="rounded bg-white border border-slate-300 px-3 py-1.5 text-lg font-bold tracking-widest">
+                        {{ $u->wa_pairing_code ?? '—' }}
+                    </code>
+                    <button type="button" wire:click="regenerateWhatsAppCode" class="btn-secondary text-sm">
+                        {{ $u->wa_pairing_code ? 'Генерирај нов' : 'Генерирај код' }}
+                    </button>
+                </div>
+                <p class="mt-3 text-sm text-slate-600">
+                    Како: испратете го кодот <strong>како прва порака</strong> на нашиот WhatsApp Business број.
+                    После тоа може директно да праќате слики; кога завршите, напишете <code>ГОТОВО</code>.
+                </p>
+            </div>
+        @endif
+    </section>
 </div>
