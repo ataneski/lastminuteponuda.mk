@@ -51,6 +51,7 @@
 
                 @auth
                     <a href="{{ route('listings.mine') }}" class="text-sm font-medium text-slate-600 hover:text-slate-900">Мои огласи</a>
+                    <a href="{{ route('agency.profile.edit') }}" class="text-sm font-medium text-slate-600 hover:text-slate-900">Профил</a>
                     <a href="{{ route('listings.create') }}" class="btn-primary">+ Нов оглас</a>
                     <form method="POST" action="{{ route('logout') }}" class="inline">
                         @csrf

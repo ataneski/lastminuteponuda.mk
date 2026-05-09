@@ -135,10 +135,31 @@
                 </section>
 
                 <section class="mt-6 rounded-md bg-slate-50 p-4 border border-slate-200">
-                    <h2 class="text-sm font-semibold text-slate-700">Контакт со агенцијата</h2>
-                    <p class="text-slate-900 font-medium">{{ $listing->agency_name }}</p>
-                    <p class="text-slate-700">{{ $listing->agency_contact }}</p>
+                    <div class="flex items-center justify-between gap-3 flex-wrap">
+                        <div class="flex items-center gap-3">
+                            @if ($listing->user?->logo_url)
+                                <img src="{{ $listing->user->logo_url }}" alt="" class="h-10 w-10 rounded object-cover">
+                            @endif
+                            <div>
+                                <h2 class="text-sm font-semibold text-slate-700">Контакт со агенцијата</h2>
+                                <p class="text-slate-900 font-medium">
+                                    {{ $listing->user->brand_name ?? $listing->agency_name }}
+                                </p>
+                                <p class="text-slate-700">{{ $listing->agency_contact }}</p>
+                            </div>
+                        </div>
+                        @if ($listing->user)
+                            <a href="{{ route('agency.show', $listing->user) }}"
+                                class="text-sm font-medium text-sky-700 hover:underline">Сите понуди од оваа агенција →</a>
+                        @endif
+                    </div>
                 </section>
+
+                @if (! auth()->check() || auth()->id() !== $listing->user_id)
+                    <div class="mt-6">
+                        <livewire:listing-inquiry :listing="$listing" />
+                    </div>
+                @endif
             </div>
         </div>
     </article>

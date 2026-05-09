@@ -42,15 +42,17 @@ composer run dev
 | --- | --- | --- | --- |
 | `/` | `home` | public | Hero + последни 6 активни огласи |
 | `/oglasi` | `listings.index` | public | Активни огласи + Livewire филтри (цена, датум, држава, board, превоз, ѕвезди) |
-| `/oglasi/{id}` | `listings.show` | public | Детали + JSON-LD `TouristTrip` schema; 404 ако огласот е истечен |
+| `/oglasi/{id}` | `listings.show` | public | Детали + JSON-LD `TouristTrip` + inquiry форма; 404 ако огласот е истечен |
+| `/agencija/{slug}` | `agency.show` | public | Јавна страница на агенција со лого, бои, опис, активни огласи, контакт |
 | `/sitemap.xml` | `sitemap` | public | Динамичен sitemap со сите активни огласи |
 | `/login`, `/register` | Breeze | public | Auth екрани |
 | `/agencija/nov-oglas` | `listings.create` | auth | Livewire форма за нов оглас |
+| `/agencija/profil` | `agency.profile.edit` | auth | Уредување на бренд (лого, cover, бои, slug, контакт) |
 | `/agencija/oglas/{id}/uredi` | `listings.edit` | auth+owner | Уредување — само сопственикот |
 | `/agencija/oglas/{id}` (DELETE) | `listings.destroy` | auth+owner | Бришење — само сопственикот |
-| `/agencija/moi-oglasi` | `listings.mine` | auth | Сите огласи (вклучувајќи истечени) на најавената агенција |
+| `/agencija/moi-oglasi` | `listings.mine` | auth | Сите огласи на најавената агенција |
 | `/dashboard` | `dashboard` | auth | Redirect → `listings.mine` (за Breeze) |
-| `/profile` | `profile.edit` | auth | Профил на корисникот |
+| `/profile` | `profile.edit` | auth | Профил на корисникот (Breeze) |
 
 ## Модел `Listing`
 
@@ -82,7 +84,7 @@ composer run dev
 php artisan test
 ```
 
-79 теста (211 assertions) во `tests/Feature/`:
+99 теста (274 assertions) во `tests/Feature/`:
 
 - `ListingPagesTest` — рендерирање, 404, auth gating, isolation
 - `ListingFormTest` — валидација, создавање, features, image upload
@@ -92,6 +94,10 @@ php artisan test
 - `ListingImagesTest` — multi-image upload, max 10, cascade delete, append
 - `ListingNotificationsTest` — rate limit (5/час), email на creation
 - `SeoTest` — sitemap, meta tags, JSON-LD, robots.txt
+- `AgencyProfileTest` — slug auto-gen, public страница, accent color,
+  логo upload, валидација на slug + accent
+- `ListingInquiryTest` — рендерирање, mail queueing, validation,
+  honeypot, rate limit (3/час по IP), fallback на `agency_contact`
 - Breeze auth тестови (registration, login, password reset, profile)
 
 ## Безбедност (по дизајн)

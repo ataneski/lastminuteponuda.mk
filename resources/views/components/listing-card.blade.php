@@ -22,6 +22,14 @@
             <span class="badge">{{ $listing->transport_label }}</span>
             <span class="badge">{{ $listing->nights }} ноќи</span>
         </div>
+        @if ($listing->user)
+            <div class="mt-3 flex items-center gap-2 text-xs text-slate-500">
+                @if ($listing->user->logo_url)
+                    <img src="{{ $listing->user->logo_url }}" alt="" class="h-5 w-5 rounded object-cover">
+                @endif
+                <span>{{ $listing->user->brand_name }}</span>
+            </div>
+        @endif
         <div class="mt-4 flex items-end justify-between">
             <div class="text-xs text-slate-500">
                 {{ $listing->departure_date->format('d.m.Y') }} — {{ $listing->return_date->format('d.m.Y') }}
