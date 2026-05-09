@@ -7,47 +7,71 @@
 
 ## Стек
 
-- Next.js 15 (App Router) + React 19
-- TypeScript + Tailwind CSS
-- Server Actions со `useActionState`
-- JSON-фајл како почетна перзистенција (`data/listings.json`) — заменливо со
-  база подоцна
+- Laravel 13 (PHP 8.3+)
+- Livewire 4 (single-file components) за интерактивната агенциска форма и
+  пребарувањето во индексот на огласи
+- Blade за server-rendered HTML страниците
+- Tailwind CSS 4 (со Vite)
+- SQLite за развој (`database/database.sqlite`); лесно се прешалтува на
+  MySQL/PostgreSQL преку `.env`
 
 ## Стартување локално
 
 ```bash
-npm install
-npm run dev
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate --seed
+npm install && npm run build
+php artisan serve
 ```
 
-Отворете `http://localhost:3000`.
+Отворете `http://127.0.0.1:8000`.
 
-## Главни страници
+За development со hot reload:
 
-- `/` — Home: hero + последни 6 огласи
-- `/oglasi` — листа на сите огласи
-- `/oglasi/[id]` — детали за оглас (дестинација, хотел, термин, цена,
-  карактеристики, контакт со агенција)
-- `/agencija/nov-oglas` — форма за поставување нов оглас (агенциски flow)
+```bash
+composer run dev
+```
 
-## Модел на оглас
+## Главни рути
 
-`lib/types.ts` — `Listing`:
+| URL | Име | Опис |
+| --- | --- | --- |
+| `/` | `home` | Hero + последни 6 огласи |
+| `/oglasi` | `listings.index` | Сите огласи + Livewire пребарување/филтер |
+| `/oglasi/{id}` | `listings.show` | Детали за оглас + контакт со агенција |
+| `/agencija/nov-oglas` | `listings.create` | Livewire форма за нов оглас |
 
-- агенција (име, контакт)
-- наслов, дестинација, држава
-- хотел + ѕвезди (1–5)
-- тип на пансион (без оброци, појадок, полупансион, полн пансион,
-  all inclusive, ultra all inclusive)
-- превоз (автобус, авион, сопствен превоз, траект)
-- датум на поаѓање/враќање, ноќевања
-- цена по лице + валута (EUR/MKD/USD)
-- слободни места
-- опис, листа на карактеристики, опционална слика
+## Модел `Listing`
 
-## Перзистенција
+`app/Models/Listing.php` со миграција `database/migrations/*_create_listings_table.php`:
 
-Огласите се чуваат во `data/listings.json` преку `lib/storage.ts`.
-Записот е append-only (нови огласи на врвот). За продукција заменете го
-`storage.ts` со адаптер кон вистинска база (Postgres, SQLite + Prisma,
-итн.) — потписите на функциите остануваат исти.
+- агенција: `agency_name`, `agency_contact`
+- понуда: `title`, `destination`, `country`, `hotel_name`, `hotel_stars` (1–5)
+- услуги: `board_type` (без оброци / појадок / полупансион / полн / all
+  inclusive / ultra all inclusive), `transport` (автобус / авион /
+  сопствен / траект)
+- термин и цена: `departure_date`, `return_date`, `nights`,
+  `price_per_person`, `currency` (EUR/MKD/USD), `available_seats`
+- содржина: `description`, `features` (JSON низа), `image_url`
+
+Сите енумерации со македонски лабели се на самиот модел
+(`Listing::BOARD_TYPES`, `Listing::TRANSPORTS`).
+
+## Livewire компоненти
+
+- `resources/views/components/⚡listing-form.blade.php` — агенциска форма
+  со server-side валидација (`#[Validate]`) и chip-ови за карактеристики
+  (preset + custom)
+- `resources/views/components/⚡listings-index.blade.php` — листа со
+  пагинација и live пребарување (debounced URL state)
+
+## Безбедност (по дизајн)
+
+- CSRF token на сите Livewire requests (built-in)
+- Server-side валидација на сите полиња (`#[Validate]` на компонентата)
+- Eloquent + параметризирани queries — нема raw SQL
+- `$fillable` ограничен модел (без `$guarded = []`)
+- Без auth логика во middleware (избегнат CVE-2025-29927 паттерн —
+  важи само за Next.js, но истиот принцип го применуваме тука)
