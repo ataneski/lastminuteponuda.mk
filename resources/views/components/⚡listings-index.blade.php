@@ -65,7 +65,10 @@ new class extends Component
 
     public function with(): array
     {
-        $query = Listing::query()->active()->orderByDesc('created_at');
+        $query = Listing::query()
+            ->active()
+            ->orderByRaw('(featured_until IS NOT NULL AND featured_until > ?) DESC', [now()])
+            ->orderByDesc('created_at');
 
         if ($this->search !== '') {
             $query->where(function ($q) {

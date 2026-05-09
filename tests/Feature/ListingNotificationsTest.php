@@ -59,8 +59,9 @@ it('does not send email on update', function () {
     Mail::assertNothingQueued();
 });
 
-it('rate limits to 5 listings per hour', function () {
+it('rate limits to 5 listings per hour for Pro users', function () {
     Mail::fake();
+    $this->user->update(['subscription_tier' => 'pro', 'subscription_until' => now()->addYear()]);
     $this->actingAs($this->user);
 
     for ($i = 0; $i < 5; $i++) {

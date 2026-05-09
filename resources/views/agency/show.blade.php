@@ -109,6 +109,22 @@
                         </div>
                     @endif
                 </dl>
+                @if ($agency->instagram_handle || $agency->facebook_url)
+                    <div class="mt-3 flex gap-2">
+                        @if ($agency->instagram_handle)
+                            <a href="https://instagram.com/{{ $agency->instagram_handle }}" target="_blank" rel="noopener"
+                                class="inline-flex items-center rounded-md border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50">
+                                Instagram
+                            </a>
+                        @endif
+                        @if ($agency->facebook_url)
+                            <a href="{{ $agency->facebook_url }}" target="_blank" rel="noopener"
+                                class="inline-flex items-center rounded-md border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50">
+                                Facebook
+                            </a>
+                        @endif
+                    </div>
+                @endif
             </div>
         </aside>
     </section>

@@ -24,4 +24,9 @@ class AgencyController extends Controller
             'listings' => $listings,
         ]);
     }
+
+    public function analytics(): View
+    {
+        return view('agency.analytics');
+    }
 }

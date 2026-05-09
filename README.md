@@ -41,17 +41,22 @@ composer run dev
 | URL | Име | Auth | Опис |
 | --- | --- | --- | --- |
 | `/` | `home` | public | Hero + последни 6 активни огласи |
-| `/oglasi` | `listings.index` | public | Активни огласи + Livewire филтри (цена, датум, држава, board, превоз, ѕвезди) |
-| `/oglasi/{id}` | `listings.show` | public | Детали + JSON-LD `TouristTrip` + inquiry форма; 404 ако огласот е истечен |
-| `/agencija/{slug}` | `agency.show` | public | Јавна страница на агенција со лого, бои, опис, активни огласи, контакт |
-| `/sitemap.xml` | `sitemap` | public | Динамичен sitemap со сите активни огласи |
+| `/oglasi` | `listings.index` | public | Активни огласи + Livewire филтри; featured огласи прво |
+| `/oglasi/{id}` | `listings.show` | public | Детали + JSON-LD + inquiry форма; +1 view counter |
+| `/oglasi/{id}/social-card.png` | `listings.social-card` | public | Auto-generated 1080×1080 IG card |
+| `/agencija/{slug}` | `agency.show` | public | Јавна страница на агенција со лого, бои, активни огласи |
+| `/planovi` | `upgrade` | public | Free / Pro / Premium pricing страница |
+| `/sitemap.xml` | `sitemap` | public | Динамичен sitemap |
 | `/login`, `/register` | Breeze | public | Auth екрани |
-| `/agencija/nov-oglas` | `listings.create` | auth | Livewire форма за нов оглас |
-| `/agencija/profil` | `agency.profile.edit` | auth | Уредување на бренд (лого, cover, бои, slug, контакт) |
+| `/agencija/nov-oglas` | `listings.create` | auth | Нов оглас (Free cap = 3 активни) |
+| `/agencija/profil` | `agency.profile.edit` | auth | Бренд (лого, cover, бои, slug, контакт, IG/FB handles) |
+| `/agencija/analitika` | `agency.analytics` | auth+pro | Прегледи, прашања, конверзија, топ огласи |
 | `/agencija/oglas/{id}/uredi` | `listings.edit` | auth+owner | Уредување — само сопственикот |
 | `/agencija/oglas/{id}` (DELETE) | `listings.destroy` | auth+owner | Бришење — само сопственикот |
 | `/agencija/moi-oglasi` | `listings.mine` | auth | Сите огласи на најавената агенција |
-| `/dashboard` | `dashboard` | auth | Redirect → `listings.mine` (за Breeze) |
+| `/admin` | `admin.index` | admin | Сите агенции, tier ажурирање |
+| `/admin/listings` | `admin.listings` | admin | Сите огласи, featured boost |
+| `/dashboard` | `dashboard` | auth | Redirect → `listings.mine` |
 | `/profile` | `profile.edit` | auth | Профил на корисникот (Breeze) |
 
 ## Модел `Listing`
@@ -78,13 +83,38 @@ composer run dev
 - `resources/views/components/⚡listings-index.blade.php` — листа со
   пагинација и live пребарување (debounced URL state)
 
+## Монетизација
+
+Платформата има изграден основен monetization slojer (Phase 2 од
+[docs/monetizacija-lastminute.md](docs/monetizacija-lastminute.md)):
+
+- **Subscription tiers** на User: `free` (cap 3 активни огласи),
+  `pro`, `premium`. `effectiveTier()` се враќа на `free` ако
+  `subscription_until` е во минатото
+- **Featured boost** — `featured_until` колона; огласите се прво
+  во индексот + amber badge
+- **Lead tracking** — секое прашање се чува во `inquiries` табела
+  (sender, body, IP hash); `views_count` се инкрементира на детали
+- **Analytics dashboard** за Pro: прегледи, прашања, конверзија, топ
+  огласи (gated со `isPro()`)
+- **Auto-generated IG card** (1080×1080 PNG) — `SocialCardGenerator`
+  со DejaVu Sans, accent color од агенцискиот профил
+- **Admin tool** за manual активирање tier + featured boost (gated
+  со `is_admin` middleware)
+- **UTM helper** (`App\Support\Utm::tag()`) за tracking на social
+  campaign-ите
+
+Self-serve платежи нема (по дизајн, Phase 2). Активирањето на Pro
+и featured boost е manual преку admin панелот, по уплата на gjiro
+или контакт со клиентот.
+
 ## Тестови
 
 ```bash
 php artisan test
 ```
 
-99 теста (274 assertions) во `tests/Feature/`:
+124 теста (330 assertions) во `tests/Feature/`:
 
 - `ListingPagesTest` — рендерирање, 404, auth gating, isolation
 - `ListingFormTest` — валидација, создавање, features, image upload
@@ -98,6 +128,11 @@ php artisan test
   логo upload, валидација на slug + accent
 - `ListingInquiryTest` — рендерирање, mail queueing, validation,
   honeypot, rate limit (3/час по IP), fallback на `agency_contact`
+- `MonetizationTest` — tier resolution, free cap (3 активни), Pro
+  unlimited, expired subscription falls back to free, featured
+  badge + sort, view counter (без owner views), inquiry logging,
+  analytics gating, admin tier update + feature/unfeature, social
+  card 1080×1080 PNG, UTM helper
 - Breeze auth тестови (registration, login, password reset, profile)
 
 ## Безбедност (по дизајн)

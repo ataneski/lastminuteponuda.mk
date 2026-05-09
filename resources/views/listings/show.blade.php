@@ -48,15 +48,27 @@
 
 @section('content')
     <article class="mx-auto max-w-4xl px-4 py-8">
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between flex-wrap gap-2">
             <a href="{{ route('listings.index') }}" class="text-sm text-sky-700 hover:underline">← Назад на огласи</a>
-            @can('update', $listing)
-                <a href="{{ route('listings.edit', $listing) }}"
-                    class="text-sm font-medium text-sky-700 hover:underline">Уреди го овој оглас →</a>
-            @endcan
+            <div class="flex items-center gap-3">
+                @can('update', $listing)
+                    <a href="{{ route('listings.social-card', $listing) }}" download
+                        class="text-sm font-medium text-sky-700 hover:underline">
+                        ⤓ Сподели на IG (1080×1080)
+                    </a>
+                    <a href="{{ route('listings.edit', $listing) }}"
+                        class="text-sm font-medium text-sky-700 hover:underline">Уреди го овој оглас →</a>
+                @endcan
+            </div>
         </div>
 
-        <div class="mt-4 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+        @if ($listing->isFeatured())
+            <div class="mt-4 inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-semibold text-amber-800">
+                ★ Препорачана понуда
+            </div>
+        @endif
+
+        <div class="mt-4 overflow-hidden rounded-lg border {{ $listing->isFeatured() ? 'border-amber-300 ring-1 ring-amber-200' : 'border-slate-200' }} bg-white shadow-sm">
             @php $primary = $listing->primary_image_url; @endphp
             @if ($primary)
                 <img src="{{ $primary }}" alt="{{ $listing->title }}" class="h-72 w-full object-cover">

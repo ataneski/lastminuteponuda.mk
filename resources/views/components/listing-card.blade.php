@@ -1,7 +1,12 @@
 @props(['listing'])
 
 <a href="{{ route('listings.show', $listing) }}"
-    class="block rounded-lg border border-slate-200 bg-white shadow-sm hover:shadow-md hover:border-sky-300 transition overflow-hidden">
+    class="block rounded-lg border {{ $listing->isFeatured() ? 'border-amber-300 ring-1 ring-amber-200' : 'border-slate-200' }} bg-white shadow-sm hover:shadow-md hover:border-sky-300 transition overflow-hidden relative">
+    @if ($listing->isFeatured())
+        <span class="absolute top-2 left-2 z-10 inline-flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-0.5 text-xs font-semibold text-white shadow">
+            ★ Препорачано
+        </span>
+    @endif
     @if ($listing->image_url)
         <img src="{{ $listing->image_url }}" alt="{{ $listing->title }}" class="h-44 w-full object-cover">
     @else

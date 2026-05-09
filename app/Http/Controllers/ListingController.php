@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Listing;
+use App\Services\SocialCardGenerator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Response;
 use Illuminate\View\View;
@@ -34,6 +35,11 @@ class ListingController extends Controller
     {
         if ($listing->isExpired() && (! auth()->check() || $listing->user_id !== auth()->id())) {
             abort(404);
+        }
+
+        // Don't count owner views or admin/bot views in the metric.
+        if (! auth()->check() || auth()->id() !== $listing->user_id) {
+            $listing->incrementQuietly('views_count');
         }
 
         return view('listings.show', compact('listing'));
@@ -74,5 +80,17 @@ class ListingController extends Controller
         return response()
             ->view('seo.sitemap', compact('listings'))
             ->header('Content-Type', 'application/xml');
+    }
+
+    public function socialCard(Listing $listing, SocialCardGenerator $gen): Response
+    {
+        if ($listing->isExpired() && (! auth()->check() || auth()->id() !== $listing->user_id)) {
+            abort(404);
+        }
+
+        return response($gen->renderPng($listing), 200, [
+            'Content-Type' => 'image/png',
+            'Cache-Control' => 'public, max-age=3600',
+        ]);
     }
 }

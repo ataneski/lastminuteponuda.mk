@@ -33,6 +33,7 @@ class Listing extends Model
     protected $fillable = [
         'user_id',
         'expires_at',
+        'featured_until',
         'agency_name',
         'agency_contact',
         'title',
@@ -59,11 +60,13 @@ class Listing extends Model
             'departure_date' => 'date',
             'return_date' => 'date',
             'expires_at' => 'datetime',
+            'featured_until' => 'datetime',
             'features' => 'array',
             'hotel_stars' => 'integer',
             'nights' => 'integer',
             'price_per_person' => 'integer',
             'available_seats' => 'integer',
+            'views_count' => 'integer',
         ];
     }
 
@@ -72,6 +75,16 @@ class Listing extends Model
         return $query->where(function ($q) {
             $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
         });
+    }
+
+    public function scopeFeatured($query)
+    {
+        return $query->whereNotNull('featured_until')->where('featured_until', '>', now());
+    }
+
+    public function isFeatured(): bool
+    {
+        return $this->featured_until !== null && $this->featured_until->isFuture();
     }
 
     public function scopeExpired($query)
@@ -92,6 +105,11 @@ class Listing extends Model
     public function images(): HasMany
     {
         return $this->hasMany(ListingImage::class)->orderBy('position');
+    }
+
+    public function inquiries(): HasMany
+    {
+        return $this->hasMany(Inquiry::class);
     }
 
     public function getPrimaryImageUrlAttribute(): ?string

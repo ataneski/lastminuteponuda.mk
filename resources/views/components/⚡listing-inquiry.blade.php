@@ -1,6 +1,7 @@
 <?php
 
 use App\Mail\ListingInquiryMail;
+use App\Models\Inquiry;
 use App\Models\Listing;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
@@ -55,6 +56,16 @@ new class extends Component
         $this->validate();
 
         RateLimiter::hit($key, 3600);
+
+        Inquiry::create([
+            'listing_id' => $this->listing->id,
+            'agency_id' => $this->listing->user_id,
+            'sender_name' => $this->name,
+            'sender_email' => $this->email,
+            'sender_phone' => $this->phone ?: null,
+            'body' => $this->bodyMessage,
+            'ip_hash' => hash('sha256', request()->ip().config('app.key')),
+        ]);
 
         $recipient = $this->listing->user?->email ?? $this->listing->agency_contact;
         if ($recipient && filter_var($recipient, FILTER_VALIDATE_EMAIL)) {

@@ -27,6 +27,12 @@ new class extends Component
     #[Validate('nullable|string|max:200')]
     public string $address = '';
 
+    #[Validate('nullable|regex:/^@?[a-zA-Z0-9._]{1,30}$/')]
+    public string $instagram_handle = '';
+
+    #[Validate('nullable|url|max:255')]
+    public string $facebook_url = '';
+
     #[Validate('nullable|regex:/^#[0-9a-fA-F]{6}$/')]
     public string $accent_color = '#0284c7';
 
@@ -47,6 +53,8 @@ new class extends Component
         $this->website = $u->website ?? '';
         $this->phone = $u->phone ?? '';
         $this->address = $u->address ?? '';
+        $this->instagram_handle = $u->instagram_handle ?? '';
+        $this->facebook_url = $u->facebook_url ?? '';
         $this->accent_color = $u->accent_color ?: User::DEFAULT_ACCENT;
         $this->slug_input = $u->slug ?? '';
     }
@@ -82,6 +90,8 @@ new class extends Component
             'website' => $this->website ?: null,
             'phone' => $this->phone ?: null,
             'address' => $this->address ?: null,
+            'instagram_handle' => $this->instagram_handle ? ltrim($this->instagram_handle, '@') : null,
+            'facebook_url' => $this->facebook_url ?: null,
             'accent_color' => $this->accent_color ?: null,
         ]);
 
@@ -232,6 +242,19 @@ new class extends Component
                     <input wire:model.blur="address" type="text" class="input"
                         placeholder="ул. …, Скопје">
                     @error('address') <p class="error">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label class="label">Instagram handle</label>
+                    <input wire:model.blur="instagram_handle" type="text" class="input"
+                        placeholder="@nasa_agencija">
+                    <p class="mt-1 text-xs text-slate-500">Без @ или со — двете работат.</p>
+                    @error('instagram_handle') <p class="error">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label class="label">Facebook URL</label>
+                    <input wire:model.blur="facebook_url" type="url" class="input"
+                        placeholder="https://facebook.com/…">
+                    @error('facebook_url') <p class="error">{{ $message }}</p> @enderror
                 </div>
             </div>
         </section>

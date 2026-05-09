@@ -191,7 +191,15 @@ new class extends Component
     public function save()
     {
         if (! $this->isEditing()) {
-            $key = 'create-listing:'.auth()->id();
+            $user = auth()->user();
+            if (! $user->canCreateListing()) {
+                throw ValidationException::withMessages([
+                    'agency_name' => 'Free tier е лимитиран на '.\App\Models\User::FREE_TIER_ACTIVE_LIMIT.
+                        ' активни огласи. Надградете на Pro за неограничено.',
+                ]);
+            }
+
+            $key = 'create-listing:'.$user->id;
             if (RateLimiter::tooManyAttempts($key, 5)) {
                 $seconds = RateLimiter::availableIn($key);
                 throw ValidationException::withMessages([
