@@ -48,7 +48,9 @@ composer run dev
 | `/planovi` | `upgrade` | public | Free / Pro / Premium pricing страница |
 | `/sitemap.xml` | `sitemap` | public | Динамичен sitemap |
 | `/login`, `/register` | Breeze | public | Auth екрани |
-| `/agencija/nov-oglas` | `listings.create` | auth | Нов оглас (Free cap = 3 активни) |
+| `/agencija/nov-oglas` | `listings.create` | auth | Нов оглас (рачно — Free cap = 3 активни + drafts) |
+| `/agencija/nov-oglas-ai` | `listings.create-ai` | auth | ✨ AI wizard: upload слики → CPT → AI title + image order → publish |
+| `/webhooks/whatsapp` | `whatsapp.handle` | public (HMAC) | Meta Cloud API webhook за upload од WhatsApp |
 | `/agencija/profil` | `agency.profile.edit` | auth | Бренд (лого, cover, бои, slug, контакт, IG/FB handles) |
 | `/agencija/analitika` | `agency.analytics` | auth+pro | Прегледи, прашања, конверзија, топ огласи |
 | `/agencija/oglas/{id}/uredi` | `listings.edit` | auth+owner | Уредување — само сопственикот |
@@ -112,13 +114,39 @@ Self-serve платежи нема (по дизајн, Phase 2). Активир�
 и featured boost е manual преку admin панелот, по уплата на gjiro
 или контакт со клиентот.
 
+## AI агент
+
+Главната функција на платформата: агенциите праќаат фотки (web upload или
+WhatsApp) + пополнуваат CPT форма; AI генерира наслов, редосред на сликите
+(hero best-first), подготвен е draft за преглед, една клика го објавува.
+
+Документиран дизајн: `/root/.claude/plans/soft-skipping-hippo.md`
+
+Енвиронмент променливи (`.env`):
+
+```
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-2.5-pro
+WHATSAPP_PHONE_NUMBER_ID=
+WHATSAPP_ACCESS_TOKEN=
+WHATSAPP_APP_SECRET=
+WHATSAPP_VERIFY_TOKEN=
+```
+
+Помошни команди:
+
+```bash
+php artisan listings:purge-stale-drafts          # daily 03:00 via Schedule
+php artisan ai:dry-run-listing {id}              # local-only prompt iteration
+```
+
 ## Тестови
 
 ```bash
 php artisan test
 ```
 
-136 теста (358 assertions) во `tests/Feature/`:
+168 теста (449 assertions) во `tests/Feature/`:
 
 - `ListingPagesTest` — рендерирање, 404, auth gating, isolation
 - `ListingFormTest` — валидација, создавање, features, image upload
@@ -140,6 +168,15 @@ php artisan test
 - `ListingAnalyticsTest` — per-listing analytics: auth/policy gating,
   Pro vs free preview, daily view aggregation + cascade, time-range
   switching, inquiry filtering by range, owner badges на /moi-oglasi
+- `ListingDraftTest` — draft scope, 404 for guests, owner can view,
+  publish() idempotency
+- `AiWizardTest` — wizard flow + ProcessListingDraftJob (Gemini mocked
+  via Http::fake), graceful degradation, image_order repair,
+  ImageProcessor resize
+- `WhatsAppIntakeTest` — webhook verify + HMAC, pairing flow, image
+  ingestion, stop-word finalization, FinalizeJob
+- `AiPolishTest` — draft cap counting, stale-draft purge command,
+  dry-run guard rails
 - Breeze auth тестови (registration, login, password reset, profile)
 
 ## Безбедност (по дизајн)

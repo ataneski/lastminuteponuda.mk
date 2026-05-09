@@ -161,7 +161,10 @@ class User extends Authenticatable
     }
 
     /**
-     * Free tier is capped at FREE_TIER_ACTIVE_LIMIT active (non-expired) listings.
+     * Free tier is capped at FREE_TIER_ACTIVE_LIMIT (active, non-expired)
+     * listings PLUS recent drafts (created in the last 24h). Without the
+     * draft component a free user could otherwise spawn unlimited drafts
+     * via the AI wizard / WhatsApp flow without ever publishing them.
      * Pro/Premium are unlimited.
      */
     public function canCreateListing(): bool
@@ -172,11 +175,19 @@ class User extends Authenticatable
 
         $active = $this->listings()
             ->where(function ($q) {
-                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+                $q->whereNotNull('published_at')
+                    ->where(function ($qq) {
+                        $qq->whereNull('expires_at')->orWhere('expires_at', '>', now());
+                    });
             })
             ->count();
 
-        return $active < self::FREE_TIER_ACTIVE_LIMIT;
+        $recentDrafts = $this->listings()
+            ->whereNull('published_at')
+            ->where('created_at', '>=', now()->subDay())
+            ->count();
+
+        return ($active + $recentDrafts) < self::FREE_TIER_ACTIVE_LIMIT;
     }
 
     public function activeListingCount(): int
