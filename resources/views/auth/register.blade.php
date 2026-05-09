@@ -73,4 +73,6 @@
             <a href="{{ route('register.agency') }}" class="text-sky-700 hover:underline">Регистрирај агенција →</a>
         </p>
     </form>
+
+    <x-oauth-buttons />
 </x-guest-layout>

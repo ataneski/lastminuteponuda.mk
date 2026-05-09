@@ -50,6 +50,9 @@ composer run dev
 | `/login` | Breeze | public | Логирање — redirect по role |
 | `/register` | `register` | public | Регистрација на корисник (име, презиме, телефон, email) |
 | `/register-agencija` | `register.agency` | public | Регистрација на агенција |
+| `/auth/{google\|facebook}/redirect` | `oauth.redirect` | public | OAuth start (Socialite) |
+| `/auth/{google\|facebook}/callback` | `oauth.callback` | public | OAuth callback → auto-login |
+| `/dopolni-profil` | `customer.complete-profile` | auth | Дополни телефон + marketing (за OAuth users) |
 | `/moj-profil` | `customer.profile` | auth (customer) | Уредување на корисник + marketing consent |
 | `/agencija/nov-oglas` | `listings.create` | auth | Нов оглас (рачно — Free cap = 3 активни + drafts) |
 | `/agencija/nov-oglas-ai` | `listings.create-ai` | auth | ✨ AI wizard: upload слики → CPT → AI title + image order → publish |
@@ -163,13 +166,45 @@ php artisan ai:dry-run-listing {id}              # local-only prompt iteration
 Маркетинг база: `users.marketing_consent` + `marketing_consent_at` за
 аудит. За newsletter/SMS пушки пуштете `User::where('role','customer')->where('marketing_consent', true)->get()`.
 
+## OAuth (Google / Facebook)
+
+Корисниците можат да се регистрираат/логираат со еден клик преку
+Google или Facebook. Социјалните копчиња се скриваат автоматски ако
+нема `client_id` во `.env` (тивко off за dev).
+
+Енвиронмент променливи:
+
+```
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI="${APP_URL}/auth/google/callback"
+
+FACEBOOK_CLIENT_ID=
+FACEBOOK_CLIENT_SECRET=
+FACEBOOK_REDIRECT_URI="${APP_URL}/auth/facebook/callback"
+```
+
+Flow:
+1. Корисникот кликнува „Продолжи со Google"
+2. Google → callback на `/auth/google/callback`
+3. Auto-link логика: 
+   - Ако `(provider, provider_id)` веќе постои → log in
+   - Ако `email` колидира со постоечки account → линкирај го провајдерот
+     (доверуваме на провајдерската email верификација)
+   - Ако ништо не постои → нов customer (со name од провајдерот)
+4. Ако нема `phone` → редирект на `/dopolni-profil` (телефон + marketing)
+5. Иначе → `/` (или intended URL)
+
+Само customer flow преку OAuth — агенциите минуваат низ
+`/register-agencija` за брендовиот профил.
+
 ## Тестови
 
 ```bash
 php artisan test
 ```
 
-185 теста (510 assertions) во `tests/Feature/`:
+196 теста (558 assertions) во `tests/Feature/`:
 
 - `ListingPagesTest` — рендерирање, 404, auth gating, isolation
 - `ListingFormTest` — валидација, создавање, features, image upload
@@ -203,6 +238,9 @@ php artisan test
 - `CustomerRegistrationTest` — customer/agency registration flows,
   role-based login redirect, price/contact gating, inquiry CTA,
   customer profile + marketing consent timestamping
+- `OauthLoginTest` — Socialite redirect/callback (mocked), customer
+  creation, returning user, email-based linking, error handling,
+  complete-profile flow, OAuth button gating
 - Breeze auth тестови (registration, login, password reset, profile)
 
 ## Безбедност (по дизајн)

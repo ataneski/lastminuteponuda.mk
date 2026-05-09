@@ -15,6 +15,7 @@ use Illuminate\Support\Str;
     'name', 'email', 'password',
     'first_name', 'last_name', 'role',
     'marketing_consent', 'marketing_consent_at',
+    'provider', 'provider_id', 'provider_avatar',
     'slug', 'display_name', 'tagline', 'description',
     'logo_url', 'cover_url', 'website', 'phone',
     'address', 'accent_color',

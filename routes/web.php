@@ -51,6 +51,11 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/moj-profil', [CustomerController::class, 'profile'])->name('customer.profile');
     Route::patch('/moj-profil', [CustomerController::class, 'updateProfile'])->name('customer.profile.update');
+
+    Route::get('/dopolni-profil', [CustomerController::class, 'completeProfile'])
+        ->name('customer.complete-profile');
+    Route::post('/dopolni-profil', [CustomerController::class, 'storeCompleteProfile'])
+        ->name('customer.complete-profile.store');
 });
 
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
