@@ -18,6 +18,7 @@ Route::view('/planovi', 'agency.upgrade')->name('upgrade');
 
 Route::middleware('auth')->group(function () {
     Route::get('/agencija/nov-oglas', [ListingController::class, 'create'])->name('listings.create');
+    Route::get('/agencija/nov-oglas-ai', [ListingController::class, 'createAi'])->name('listings.create-ai');
     Route::get('/agencija/moi-oglasi', [ListingController::class, 'mine'])->name('listings.mine');
     Route::get('/agencija/profil', [AgencyController::class, 'edit'])->name('agency.profile.edit');
     Route::get('/agencija/analitika', [AgencyController::class, 'analytics'])->name('agency.analytics');

@@ -32,6 +32,11 @@ class ListingController extends Controller
         return view('listings.create');
     }
 
+    public function createAi(): View
+    {
+        return view('listings.create-ai');
+    }
+
     public function show(Listing $listing): View
     {
         $hidden = $listing->isExpired() || $listing->isDraft();

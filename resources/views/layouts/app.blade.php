@@ -56,7 +56,7 @@
                     @if (auth()->user()->is_admin)
                         <a href="{{ route('admin.index') }}" class="text-sm font-medium text-purple-700 hover:text-purple-900">Admin</a>
                     @endif
-                    <a href="{{ route('listings.create') }}" class="btn-primary">+ Нов оглас</a>
+                    <a href="{{ route('listings.create-ai') }}" class="btn-primary">✨ Нов оглас (AI)</a>
                     <form method="POST" action="{{ route('logout') }}" class="inline">
                         @csrf
                         <button type="submit" class="text-sm font-medium text-slate-600 hover:text-slate-900">
