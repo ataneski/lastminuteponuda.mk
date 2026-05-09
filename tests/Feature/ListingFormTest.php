@@ -132,14 +132,14 @@ it('uploads an image and stores its public URL', function () {
 
     Livewire::test('listing-form')
         ->set(validFormData())
-        ->set('image_file', $file)
+        ->set('image_files', [$file])
         ->call('save')
         ->assertRedirect();
 
     $listing = Listing::first();
-    expect($listing->image_url)->toContain('/storage/listings/');
+    expect($listing->primary_image_url)->toContain('/storage/listings/');
     Storage::disk('public')->assertExists(
-        str_replace('/storage/', '', $listing->image_url)
+        str_replace('/storage/', '', $listing->primary_image_url)
     );
 });
 
@@ -151,7 +151,7 @@ it('rejects oversized image upload', function () {
 
     Livewire::test('listing-form')
         ->set(validFormData())
-        ->set('image_file', $file)
+        ->set('image_files', [$file])
         ->call('save')
-        ->assertHasErrors(['image_file']);
+        ->assertHasErrors(['image_files.0']);
 });

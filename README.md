@@ -40,12 +40,15 @@ composer run dev
 
 | URL | Име | Auth | Опис |
 | --- | --- | --- | --- |
-| `/` | `home` | public | Hero + последни 6 огласи |
-| `/oglasi` | `listings.index` | public | Сите огласи + Livewire пребарување/филтер |
-| `/oglasi/{id}` | `listings.show` | public | Детали за оглас + контакт со агенција |
+| `/` | `home` | public | Hero + последни 6 активни огласи |
+| `/oglasi` | `listings.index` | public | Активни огласи + Livewire филтри (цена, датум, држава, board, превоз, ѕвезди) |
+| `/oglasi/{id}` | `listings.show` | public | Детали + JSON-LD `TouristTrip` schema; 404 ако огласот е истечен |
+| `/sitemap.xml` | `sitemap` | public | Динамичен sitemap со сите активни огласи |
 | `/login`, `/register` | Breeze | public | Auth екрани |
 | `/agencija/nov-oglas` | `listings.create` | auth | Livewire форма за нов оглас |
-| `/agencija/moi-oglasi` | `listings.mine` | auth | Огласи на најавената агенција |
+| `/agencija/oglas/{id}/uredi` | `listings.edit` | auth+owner | Уредување — само сопственикот |
+| `/agencija/oglas/{id}` (DELETE) | `listings.destroy` | auth+owner | Бришење — само сопственикот |
+| `/agencija/moi-oglasi` | `listings.mine` | auth | Сите огласи (вклучувајќи истечени) на најавената агенција |
 | `/dashboard` | `dashboard` | auth | Redirect → `listings.mine` (за Breeze) |
 | `/profile` | `profile.edit` | auth | Профил на корисникот |
 
@@ -79,26 +82,45 @@ composer run dev
 php artisan test
 ```
 
-43 теста (10 за Livewire формата, 8 за page рендерирање, 25 за Breeze
-auth/profile). Покриваат:
-- Validation на сите полиња (required, in:, date order, image size)
-- Создавање оглас со auth user_id и features
-- Image upload + storage assertion
-- Auth gating на agency рутите
-- Изолација: едниот корисник не ги гледа туѓите огласи во „Мои огласи"
+79 теста (211 assertions) во `tests/Feature/`:
+
+- `ListingPagesTest` — рендерирање, 404, auth gating, isolation
+- `ListingFormTest` — валидација, создавање, features, image upload
+- `ListingCrudTest` — edit/delete + Policy enforcement (owner-only)
+- `ListingExpiryTest` — `expires_at`, скривање на истечени, 404
+- `ListingFiltersTest` — сите 8 филтри + комбинации + clear
+- `ListingImagesTest` — multi-image upload, max 10, cascade delete, append
+- `ListingNotificationsTest` — rate limit (5/час), email на creation
+- `SeoTest` — sitemap, meta tags, JSON-LD, robots.txt
+- Breeze auth тестови (registration, login, password reset, profile)
 
 ## Безбедност (по дизајн)
 
 - CSRF token на сите Livewire и Blade форми (built-in)
-- Server-side валидација на сите полиња (`#[Validate]` атрибути)
+- Server-side валидација на сите полиња (`#[Validate]` атрибути и `rules()`)
 - Eloquent + параметризирани queries — нема raw SQL
 - `$fillable` ограничен на моделот (без `$guarded = []`)
 - Auth gate во рутите (`middleware('auth')`), не во middleware/HTTP-слој —
   избегнат паттернот од CVE-2025-29927
-- Lозинките се хеширани преку `bcrypt` (Laravel default)
-- Upload-ите се валидираат како `image|max:4096` пред да стигнат до диск
+- `ListingPolicy` за edit/delete (только сопственикот) преку
+  `$this->authorize('update'|'delete', $listing)` во Controller, Livewire
+  компонента, и Blade `@can` директива
+- Лозинките се хеширани преку `bcrypt` (Laravel default)
+- Upload-ите се валидираат како `image|max:4096` × макс. 10 пред диск
+- Rate limit: 5 нови огласи на час по корисник (RateLimiter)
 - Симлинк `public/storage` → `storage/app/public` (без exposed
   системски патишта)
+- Истечените огласи се сокриваат од јавноста и враќаат 404 (само
+  сопственикот ги гледа)
+
+## SEO
+
+- Динамичен `/sitemap.xml` со сите активни огласи + `lastmod`
+- `robots.txt` со `Sitemap:` директива и `Disallow: /agencija/`
+- Per-page meta: `<title>`, `<meta description>`, `<link rel="canonical">`
+- Open Graph + Twitter Card мета на сите страници
+- JSON-LD `TouristTrip` schema на детали страницата (Google Rich Results
+  ready) — со `Place`, `Offer`, `TravelAgency` сегменти
 
 ## Префрлање на Postgres
 

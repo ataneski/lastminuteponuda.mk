@@ -1,6 +1,10 @@
 <?php
 
+use App\Mail\ListingPublishedMail;
 use App\Models\Listing;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -9,12 +13,50 @@ new class extends Component
 {
     use WithFileUploads;
 
-    public function mount(): void
+    public ?Listing $listing = null;
+
+    public function mount(?Listing $listing = null): void
     {
+        if ($listing && $listing->exists) {
+            $this->authorize('update', $listing);
+            $this->listing = $listing;
+            $this->agency_name = $listing->agency_name;
+            $this->agency_contact = $listing->agency_contact;
+            $this->title = $listing->title;
+            $this->destination = $listing->destination;
+            $this->country = $listing->country;
+            $this->hotel_name = $listing->hotel_name;
+            $this->hotel_stars = $listing->hotel_stars;
+            $this->board_type = $listing->board_type;
+            $this->transport = $listing->transport;
+            $this->departure_date = $listing->departure_date->toDateString();
+            $this->return_date = $listing->return_date->toDateString();
+            $this->nights = $listing->nights;
+            $this->price_per_person = $listing->price_per_person;
+            $this->currency = $listing->currency;
+            $this->available_seats = $listing->available_seats;
+            $this->description = $listing->description;
+            $this->image_url = $listing->image_url ?? '';
+            $this->features = $listing->features ?? [];
+            $this->expires_at = $listing->expires_at?->format('Y-m-d\TH:i') ?? '';
+            $this->existing_images = $listing->images()
+                ->orderBy('position')
+                ->get(['id', 'url'])
+                ->map(fn ($img) => ['id' => $img->id, 'url' => $img->url])
+                ->all();
+
+            return;
+        }
+
         if ($user = auth()->user()) {
             $this->agency_name = $user->name;
             $this->agency_contact = $user->email;
         }
+    }
+
+    public function isEditing(): bool
+    {
+        return $this->listing !== null;
     }
 
     #[Validate('required|string|max:120')]
@@ -44,11 +86,11 @@ new class extends Component
     #[Validate('required|in:bus,plane,ownTransport,ferry')]
     public string $transport = 'plane';
 
-    #[Validate('required|date|after_or_equal:today')]
     public string $departure_date = '';
 
-    #[Validate('required|date|after:departure_date')]
     public string $return_date = '';
+
+    public string $expires_at = '';
 
     #[Validate('required|integer|min:1|max:60')]
     public int $nights = 7;
@@ -68,8 +110,11 @@ new class extends Component
     #[Validate('nullable|url|max:500')]
     public string $image_url = '';
 
-    #[Validate('nullable|image|max:4096')]
-    public $image_file = null;
+    /** @var array<int, \Livewire\Features\SupportFileUploads\TemporaryUploadedFile> */
+    public array $image_files = [];
+
+    /** @var array<int, array{id: int, url: string}> */
+    public array $existing_images = [];
 
     /** @var array<int, string> */
     public array $features = [];
@@ -89,10 +134,37 @@ new class extends Component
 
     public function rules(): array
     {
+        $departureRule = ['required', 'date'];
+        if (! $this->isEditing()) {
+            $departureRule[] = 'after_or_equal:today';
+        }
+
         return [
+            'departure_date' => $departureRule,
+            'return_date' => ['required', 'date', 'after:departure_date'],
+            'expires_at' => ['nullable', 'date', 'after_or_equal:today'],
             'features' => ['array'],
             'features.*' => ['string', 'max:60'],
+            'image_files' => ['array', 'max:10'],
+            'image_files.*' => ['image', 'max:4096'],
         ];
+    }
+
+    public function removeExistingImage(int $imageId): void
+    {
+        if (! $this->isEditing()) {
+            return;
+        }
+        $this->authorize('update', $this->listing);
+
+        \App\Models\ListingImage::where('listing_id', $this->listing->id)
+            ->where('id', $imageId)
+            ->delete();
+
+        $this->existing_images = array_values(array_filter(
+            $this->existing_images,
+            fn ($img) => $img['id'] !== $imageId
+        ));
     }
 
     public function toggleFeature(string $feature): void
@@ -118,20 +190,57 @@ new class extends Component
 
     public function save()
     {
-        $data = $this->validate();
-
-        if ($this->image_file) {
-            $path = $this->image_file->store('listings', 'public');
-            $data['image_url'] = \Storage::url($path);
+        if (! $this->isEditing()) {
+            $key = 'create-listing:'.auth()->id();
+            if (RateLimiter::tooManyAttempts($key, 5)) {
+                $seconds = RateLimiter::availableIn($key);
+                throw ValidationException::withMessages([
+                    'agency_name' => "Пречекоривте го лимитот од 5 нови огласи на час. Обидете се повторно за {$seconds} секунди.",
+                ]);
+            }
+            RateLimiter::hit($key, 3600);
         }
 
-        unset($data['image_file']);
+        $data = $this->validate();
 
-        $data['user_id'] = auth()->id();
+        $uploadedFiles = $data['image_files'] ?? [];
+        unset($data['image_files']);
 
-        $listing = Listing::create($data);
+        $data['expires_at'] = $this->expires_at !== '' ? $this->expires_at : null;
 
-        session()->flash('status', 'Огласот е успешно објавен.');
+        if ($this->isEditing()) {
+            $this->authorize('update', $this->listing);
+            $this->listing->update($data);
+            $listing = $this->listing;
+            $message = 'Огласот е успешно ажуриран.';
+        } else {
+            $data['user_id'] = auth()->id();
+            $listing = Listing::create($data);
+            $message = 'Огласот е успешно објавен.';
+        }
+
+        if (! empty($uploadedFiles)) {
+            $startingPosition = $listing->images()->max('position') ?? -1;
+            foreach ($uploadedFiles as $i => $file) {
+                $path = $file->store('listings', 'public');
+                $listing->images()->create([
+                    'url' => \Storage::url($path),
+                    'position' => $startingPosition + 1 + $i,
+                ]);
+            }
+
+            // Backfill primary image_url if none was set, for legacy/seed compat.
+            if (empty($listing->image_url)) {
+                $listing->update(['image_url' => $listing->images()->first()?->url]);
+            }
+        }
+
+        // Email confirmation only on create, sent to the authenticated user.
+        if (! $this->isEditing() && ($recipient = auth()->user()?->email)) {
+            Mail::to($recipient)->queue(new ListingPublishedMail($listing));
+        }
+
+        session()->flash('status', $message);
 
         return redirect()->route('listings.show', $listing);
     }
@@ -249,6 +358,15 @@ new class extends Component
                     <input wire:model.blur="available_seats" type="number" min="1" class="input">
                     @error('available_seats') <p class="error">{{ $message }}</p> @enderror
                 </div>
+                <div class="md:col-span-3">
+                    <label class="label">Истекува</label>
+                    <input wire:model.blur="expires_at" type="datetime-local" class="input">
+                    <p class="mt-1 text-xs text-slate-500">
+                        Оставете празно за оглас без рок. Препорачано: ден на враќање или порано.
+                        Истечените огласи се сокриваат од јавноста.
+                    </p>
+                    @error('expires_at') <p class="error">{{ $message }}</p> @enderror
+                </div>
             </div>
         </section>
 
@@ -296,19 +414,46 @@ new class extends Component
                     @error('description') <p class="error">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="label">Слика (опционално)</label>
-                    <input wire:model="image_file" type="file" accept="image/*" class="input">
-                    <p class="mt-1 text-xs text-slate-500">JPG/PNG/WEBP, до 4 MB.</p>
-                    @error('image_file') <p class="error">{{ $message }}</p> @enderror
-                    <div wire:loading wire:target="image_file" class="mt-1 text-xs text-slate-500">
-                        Се качува сликата…
+                    <label class="label">Слики (повеќе)</label>
+                    <input wire:model="image_files" type="file" accept="image/*" multiple class="input">
+                    <p class="mt-1 text-xs text-slate-500">JPG/PNG/WEBP, до 4 MB по слика. Максимум 10.</p>
+                    @error('image_files.*') <p class="error">{{ $message }}</p> @enderror
+                    @error('image_files') <p class="error">{{ $message }}</p> @enderror
+                    <div wire:loading wire:target="image_files" class="mt-1 text-xs text-slate-500">
+                        Се качуваат сликите…
                     </div>
-                    @if ($image_file)
-                        <img src="{{ $image_file->temporaryUrl() }}" alt="Преглед" class="mt-2 h-32 rounded-md object-cover">
+
+                    @if (count($existing_images) > 0)
+                        <div class="mt-3">
+                            <p class="text-xs font-medium text-slate-700 mb-1">Постоечки слики:</p>
+                            <div class="grid grid-cols-3 gap-2">
+                                @foreach ($existing_images as $img)
+                                    <div class="relative">
+                                        <img src="{{ $img['url'] }}" alt="" class="h-24 w-full rounded-md object-cover">
+                                        <button type="button"
+                                            wire:click="removeExistingImage({{ $img['id'] }})"
+                                            class="absolute top-1 right-1 rounded-full bg-red-600 px-2 py-0.5 text-xs text-white hover:bg-red-700"
+                                            title="Отстрани">×</button>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                    @if (count($image_files) > 0)
+                        <div class="mt-3">
+                            <p class="text-xs font-medium text-slate-700 mb-1">Нови слики (преглед):</p>
+                            <div class="grid grid-cols-3 gap-2">
+                                @foreach ($image_files as $file)
+                                    <img src="{{ $file->temporaryUrl() }}" alt="Преглед"
+                                        class="h-24 w-full rounded-md object-cover">
+                                @endforeach
+                            </div>
+                        </div>
                     @endif
                 </div>
                 <div>
-                    <label class="label">…или URL на слика</label>
+                    <label class="label">…или URL на главна слика</label>
                     <input wire:model.blur="image_url" type="url" class="input" placeholder="https://…">
                     <p class="mt-1 text-xs text-slate-500">Ако веќе имаш слика онлајн.</p>
                     @error('image_url') <p class="error">{{ $message }}</p> @enderror
@@ -320,7 +465,9 @@ new class extends Component
             <button type="button" class="btn-secondary"
                 wire:click="$set('features', [])">Исчисти карактеристики</button>
             <button type="submit" class="btn-primary" wire:loading.attr="disabled" wire:target="save">
-                <span wire:loading.remove wire:target="save">Објави оглас</span>
+                <span wire:loading.remove wire:target="save">
+                    {{ $this->isEditing() ? 'Зачувај промени' : 'Објави оглас' }}
+                </span>
                 <span wire:loading wire:target="save">Се зачувува…</span>
             </button>
         </div>

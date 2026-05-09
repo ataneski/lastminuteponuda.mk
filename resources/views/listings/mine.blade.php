@@ -21,7 +21,29 @@
         @else
             <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach ($listings as $listing)
-                    <x-listing-card :listing="$listing" />
+                    <div class="flex flex-col gap-2 relative">
+                        @if ($listing->isExpired())
+                            <div class="absolute top-2 right-2 z-10 rounded-full bg-amber-500 px-2.5 py-0.5 text-xs font-semibold text-white shadow">
+                                Истечен
+                            </div>
+                        @endif
+                        <x-listing-card :listing="$listing" />
+                        <div class="flex gap-2">
+                            <a href="{{ route('listings.edit', $listing) }}"
+                                class="flex-1 inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100">
+                                Уреди
+                            </a>
+                            <form method="POST" action="{{ route('listings.destroy', $listing) }}" class="flex-1"
+                                onsubmit="return confirm('Сигурно сакате да го избришете овој оглас?')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit"
+                                    class="w-full inline-flex items-center justify-center rounded-md border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50">
+                                    Избриши
+                                </button>
+                            </form>
+                        </div>
+                    </div>
                 @endforeach
             </div>
 

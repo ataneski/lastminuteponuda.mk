@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Listing extends Model
 {
@@ -31,6 +32,7 @@ class Listing extends Model
 
     protected $fillable = [
         'user_id',
+        'expires_at',
         'agency_name',
         'agency_contact',
         'title',
@@ -56,6 +58,7 @@ class Listing extends Model
         return [
             'departure_date' => 'date',
             'return_date' => 'date',
+            'expires_at' => 'datetime',
             'features' => 'array',
             'hotel_stars' => 'integer',
             'nights' => 'integer',
@@ -64,9 +67,36 @@ class Listing extends Model
         ];
     }
 
+    public function scopeActive($query)
+    {
+        return $query->where(function ($q) {
+            $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+        });
+    }
+
+    public function scopeExpired($query)
+    {
+        return $query->whereNotNull('expires_at')->where('expires_at', '<=', now());
+    }
+
+    public function isExpired(): bool
+    {
+        return $this->expires_at !== null && $this->expires_at->isPast();
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function images(): HasMany
+    {
+        return $this->hasMany(ListingImage::class)->orderBy('position');
+    }
+
+    public function getPrimaryImageUrlAttribute(): ?string
+    {
+        return $this->images->first()?->url ?? $this->image_url;
     }
 
     public function getBoardLabelAttribute(): string

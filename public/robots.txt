@@ -1,2 +1,10 @@
 User-agent: *
-Disallow:
+Allow: /
+Disallow: /agencija/
+Disallow: /profile
+Disallow: /login
+Disallow: /register
+Disallow: /password
+Disallow: /verify-email
+
+Sitemap: /sitemap.xml

@@ -2,16 +2,77 @@
 
 @section('title', $listing->title.' — lastminuteponuda.mk')
 @section('description', \Illuminate\Support\Str::limit($listing->description, 150))
+@section('og_type', 'product')
+@if ($listing->image_url)
+    @section('og_image', \Illuminate\Support\Str::startsWith($listing->image_url, 'http') ? $listing->image_url : url($listing->image_url))
+@endif
+
+@push('head')
+    <script type="application/ld+json">
+        {!! json_encode([
+            '@context' => 'https://schema.org',
+            '@type' => 'TouristTrip',
+            'name' => $listing->title,
+            'description' => \Illuminate\Support\Str::limit($listing->description, 300),
+            'url' => route('listings.show', $listing),
+            'image' => $listing->image_url
+                ? (\Illuminate\Support\Str::startsWith($listing->image_url, 'http') ? $listing->image_url : url($listing->image_url))
+                : null,
+            'itinerary' => [
+                '@type' => 'Place',
+                'name' => $listing->destination,
+                'address' => [
+                    '@type' => 'PostalAddress',
+                    'addressCountry' => $listing->country,
+                ],
+            ],
+            'offers' => [
+                '@type' => 'Offer',
+                'price' => $listing->price_per_person,
+                'priceCurrency' => $listing->currency,
+                'availability' => $listing->available_seats > 0
+                    ? 'https://schema.org/InStock'
+                    : 'https://schema.org/OutOfStock',
+                'validFrom' => $listing->created_at->toAtomString(),
+                'validThrough' => ($listing->expires_at ?? $listing->return_date)->toAtomString(),
+                'seller' => [
+                    '@type' => 'TravelAgency',
+                    'name' => $listing->agency_name,
+                ],
+            ],
+            'startDate' => $listing->departure_date->toDateString(),
+            'endDate' => $listing->return_date->toDateString(),
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) !!}
+    </script>
+@endpush
 
 @section('content')
     <article class="mx-auto max-w-4xl px-4 py-8">
-        <a href="{{ route('listings.index') }}" class="text-sm text-sky-700 hover:underline">← Назад на огласи</a>
+        <div class="flex items-center justify-between">
+            <a href="{{ route('listings.index') }}" class="text-sm text-sky-700 hover:underline">← Назад на огласи</a>
+            @can('update', $listing)
+                <a href="{{ route('listings.edit', $listing) }}"
+                    class="text-sm font-medium text-sky-700 hover:underline">Уреди го овој оглас →</a>
+            @endcan
+        </div>
 
         <div class="mt-4 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-            @if ($listing->image_url)
-                <img src="{{ $listing->image_url }}" alt="{{ $listing->title }}" class="h-72 w-full object-cover">
+            @php $primary = $listing->primary_image_url; @endphp
+            @if ($primary)
+                <img src="{{ $primary }}" alt="{{ $listing->title }}" class="h-72 w-full object-cover">
             @else
                 <div class="h-56 bg-gradient-to-br from-sky-100 to-sky-50"></div>
+            @endif
+
+            @if ($listing->images->count() > 1)
+                <div class="grid grid-cols-3 md:grid-cols-5 gap-1 p-1">
+                    @foreach ($listing->images->skip(1) as $img)
+                        <a href="{{ $img->url }}" target="_blank" rel="noopener">
+                            <img src="{{ $img->url }}" alt=""
+                                class="h-24 w-full object-cover rounded-sm hover:opacity-90 transition">
+                        </a>
+                    @endforeach
+                </div>
             @endif
 
             <div class="p-6">

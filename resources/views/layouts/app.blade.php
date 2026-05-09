@@ -4,8 +4,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'lastminuteponuda.mk — Last minute понуди од македонски агенции')</title>
-    <meta name="description" content="@yield('description', 'Платформа за last minute туристички понуди. Агенциите брзо и лесно поставуваат огласи со цени и карактеристики.')">
+
+    @php
+        $pageTitle = trim($__env->yieldContent('title', 'lastminuteponuda.mk — Last minute понуди од македонски агенции'));
+        $pageDescription = trim($__env->yieldContent('description', 'Платформа за last minute туристички понуди. Агенциите брзо и лесно поставуваат огласи со цени и карактеристики.'));
+        $pageImage = trim($__env->yieldContent('og_image', ''));
+        $canonical = url()->current();
+    @endphp
+
+    <title>{{ $pageTitle }}</title>
+    <meta name="description" content="{{ $pageDescription }}">
+    <link rel="canonical" href="{{ $canonical }}">
+
+    {{-- Open Graph --}}
+    <meta property="og:type" content="@yield('og_type', 'website')">
+    <meta property="og:url" content="{{ $canonical }}">
+    <meta property="og:title" content="{{ $pageTitle }}">
+    <meta property="og:description" content="{{ $pageDescription }}">
+    <meta property="og:locale" content="mk_MK">
+    @if ($pageImage !== '')
+        <meta property="og:image" content="{{ $pageImage }}">
+    @endif
+
+    {{-- Twitter --}}
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ $pageTitle }}">
+    <meta name="twitter:description" content="{{ $pageDescription }}">
+    @if ($pageImage !== '')
+        <meta name="twitter:image" content="{{ $pageImage }}">
+    @endif
+
+    @stack('head')
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
