@@ -32,8 +32,13 @@ class ListingController extends Controller
         return view('listings.create');
     }
 
-    public function createAi(): View
+    public function createAi(): \Illuminate\Contracts\View\View|\Illuminate\Http\RedirectResponse
     {
+        if (! auth()->user()->feature('ai_wizard')) {
+            return redirect()->route('upgrade')
+                ->with('status', 'AI wizard не е дел од твојот план. Прегледи планови.');
+        }
+
         return view('listings.create-ai');
     }
 

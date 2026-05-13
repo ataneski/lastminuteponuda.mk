@@ -1,14 +1,14 @@
-@extends('layouts.app')
+@extends('layouts.admin', ['active' => 'agencies'])
 
-@section('title', 'Admin — Нова агенција')
+@section('title', 'Нова агенција — admin')
+@section('breadcrumb-leaf', 'Нова')
 
 @section('content')
-    <div class="mx-auto max-w-2xl px-4 py-8">
-        <h1 class="text-2xl font-bold text-slate-900 mb-2">Нова агенција</h1>
-        @include('admin._nav', ['active' => 'agencies'])
+    <div class="max-w-2xl">
+        <h1 class="text-2xl font-semibold text-slate-900 mb-6">Нова агенција</h1>
 
         <form method="POST" action="{{ route('admin.agencies.store') }}"
-            class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+            class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
             @csrf
 
             <div>

@@ -109,7 +109,7 @@ new class extends Component
             'departure_date' => ['required', 'date', 'after_or_equal:today'],
             'return_date' => ['required', 'date', 'after:departure_date'],
             'expires_at' => ['nullable', 'date', 'after_or_equal:today'],
-            'image_files' => ['array', 'min:3', 'max:15'],
+            'image_files' => ['array', 'min:3', 'max:'.(int) (auth()->user()?->feature('max_images_per_listing') ?? 15)],
             'image_files.*' => ['image', 'max:8192'],
             'features' => ['array'],
             'features.*' => ['string', 'max:60'],

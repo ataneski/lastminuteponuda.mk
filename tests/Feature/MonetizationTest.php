@@ -174,7 +174,7 @@ it('shows upgrade prompt to free users on analytics', function () {
     $this->actingAs($u)
         ->get(route('agency.analytics'))
         ->assertOk()
-        ->assertSee('достапна само за Pro');
+        ->assertSee('не е дел од твојот план');
 });
 
 it('shows analytics dashboard to pro users', function () {

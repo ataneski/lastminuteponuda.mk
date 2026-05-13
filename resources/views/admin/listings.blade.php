@@ -1,18 +1,20 @@
-@extends('layouts.app')
+@extends('layouts.admin', ['active' => 'listings'])
 
-@section('title', 'Admin — Огласи')
+@section('title', 'Огласи — admin')
 
 @section('content')
-    <div class="mx-auto max-w-7xl px-4 py-8">
-        <h1 class="text-2xl font-bold text-slate-900 mb-2">Огласи</h1>
-        @include('admin._nav', ['active' => 'listings'])
-
-        <form method="GET" class="mb-4 flex items-center gap-2">
-            <input type="search" name="q" value="{{ request('q') }}"
-                placeholder="Пребарај по наслов, дестинација, хотел…"
-                class="rounded-md border-slate-300 text-sm w-80">
-            <button type="submit" class="btn-secondary text-sm">Барај</button>
+    <div class="flex items-center justify-between mb-6 gap-3 flex-wrap">
+        <h1 class="text-2xl font-semibold text-slate-900">Огласи</h1>
+        <form method="GET" class="flex items-center gap-2">
+            <div class="relative">
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.2-5.2m2.2-5.3a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z"/></svg>
+                <input type="search" name="q" value="{{ request('q') }}"
+                    placeholder="Наслов, дестинација, хотел…"
+                    class="rounded-md border-slate-300 text-sm pl-9 pr-3 py-1.5 w-80">
+            </div>
+            <button type="submit" class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Барај</button>
         </form>
+    </div>
 
         <div class="rounded-lg border border-slate-200 bg-white shadow-sm overflow-x-auto">
             <table class="w-full text-sm">
@@ -105,5 +107,4 @@
         </div>
 
         <div class="mt-4">{{ $listings->links() }}</div>
-    </div>
 @endsection

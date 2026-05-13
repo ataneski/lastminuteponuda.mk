@@ -14,11 +14,11 @@
             </span>
         </header>
 
-        @if (! auth()->user()->isPro())
+        @if (! auth()->user()->feature('analytics_enabled'))
             <div class="rounded-lg border-2 border-dashed border-amber-300 bg-amber-50 p-10 text-center">
-                <h2 class="text-lg font-semibold text-amber-900">Аналитиката е достапна само за Pro</h2>
-                <p class="mt-2 text-amber-800">Надградете на Pro за да видите прегледи, прашања и конверзија по оглас.</p>
-                <a href="{{ route('upgrade') }}" class="btn-primary mt-4">Надгради на Pro</a>
+                <h2 class="text-lg font-semibold text-amber-900">Аналитиката не е дел од твојот план</h2>
+                <p class="mt-2 text-amber-800">План со „Аналитика" feature дава KPI dashboard со прегледи, прашања и конверзија по оглас.</p>
+                <a href="{{ route('upgrade') }}" class="btn-primary mt-4">Прегледи планови</a>
             </div>
         @else
             <livewire:agency-analytics />

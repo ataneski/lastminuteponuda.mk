@@ -209,7 +209,7 @@ Flow:
 php artisan test
 ```
 
-216 теста (619 assertions) во `tests/Feature/`:
+227 теста (746 assertions) во `tests/Feature/`:
 
 - `ListingPagesTest` — рендерирање, 404, auth gating, isolation
 - `ListingFormTest` — валидација, создавање, features, image upload
@@ -251,6 +251,12 @@ php artisan test
   delete, self-protection), suspend + delete для огласи, tier CRUD
   с feature toggles, refusing delete на tier со корисници, cap reflects
   tier updates, role gating
+- `TierFeaturesTest` — 16 features × 6 groups catalogue integrity,
+  seeded matrix per tier, per-listing analytics gated on
+  per_listing_analytics flag (not isPro), agency analytics gated on
+  analytics_enabled, verified_badge on agency page, AI wizard route
+  blocked when ai_wizard=false, admin tiers UI shows grouped labels,
+  full 16-key feature submission via create form
 - Breeze auth тестови (registration, login, password reset, profile)
 
 ## Безбедност (по дизајн)

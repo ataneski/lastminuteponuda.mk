@@ -16,15 +16,15 @@
             <a href="{{ route('listings.edit', $listing) }}" class="btn-secondary">Уреди оглас</a>
         </header>
 
-        @if (! auth()->user()->isPro())
+        @if (! auth()->user()->feature('per_listing_analytics'))
             <div class="rounded-lg border-2 border-dashed border-amber-300 bg-amber-50 p-10 text-center">
-                <h2 class="text-lg font-semibold text-amber-900">Детална аналитика е достапна само за Pro</h2>
+                <h2 class="text-lg font-semibold text-amber-900">Per-listing аналитика не е дел од твојот план</h2>
                 <p class="mt-2 text-amber-800">
                     Овој оглас има <span class="font-bold">{{ number_format($listing->views_count) }}</span> прегледи и
                     <span class="font-bold">{{ $listing->inquiries()->count() }}</span> прашања вкупно.
                 </p>
-                <p class="mt-1 text-amber-800">Со Pro добивате 30/90-дневен график, дневни прегледи и листа на прашања.</p>
-                <a href="{{ route('upgrade') }}" class="btn-primary mt-4">Надгради на Pro</a>
+                <p class="mt-1 text-amber-800">Со план што вклучува per-listing аналитика добиваш 30/90-дневен график.</p>
+                <a href="{{ route('upgrade') }}" class="btn-primary mt-4">Прегледи планови</a>
             </div>
         @else
             <livewire:listing-analytics :listing="$listing" />

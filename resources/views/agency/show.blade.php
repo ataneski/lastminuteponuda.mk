@@ -41,7 +41,16 @@
                     </div>
                 @endif
                 <div>
-                    <h1 class="text-3xl md:text-4xl font-bold leading-tight">{{ $agency->brand_name }}</h1>
+                    <h1 class="text-3xl md:text-4xl font-bold leading-tight flex items-center gap-2 flex-wrap">
+                        {{ $agency->brand_name }}
+                        @if ($agency->feature('verified_badge'))
+                            <span class="inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold backdrop-blur"
+                                title="Верифицирана агенција">
+                                <svg class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 0 0 1.745-.723 3.066 3.066 0 0 1 3.976 0 3.066 3.066 0 0 0 1.745.723 3.066 3.066 0 0 1 2.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 0 1 0 3.976 3.066 3.066 0 0 0-.723 1.745 3.066 3.066 0 0 1-2.812 2.812 3.066 3.066 0 0 0-1.745.723 3.066 3.066 0 0 1-3.976 0 3.066 3.066 0 0 0-1.745-.723 3.066 3.066 0 0 1-2.812-2.812 3.066 3.066 0 0 0-.723-1.745 3.066 3.066 0 0 1 0-3.976 3.066 3.066 0 0 0 .723-1.745 3.066 3.066 0 0 1 2.812-2.812Zm7.44 5.252a1 1 0 0 0-1.414-1.414L9 10.586 7.707 9.293a1 1 0 0 0-1.414 1.414l2 2a1 1 0 0 0 1.414 0l4-4Z" clip-rule="evenodd"/></svg>
+                                Verified
+                            </span>
+                        @endif
+                    </h1>
                     @if ($agency->tagline)
                         <p class="mt-1 text-lg opacity-90">{{ $agency->tagline }}</p>
                     @endif

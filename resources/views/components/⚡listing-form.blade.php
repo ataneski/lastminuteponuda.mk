@@ -145,7 +145,7 @@ new class extends Component
             'expires_at' => ['nullable', 'date', 'after_or_equal:today'],
             'features' => ['array'],
             'features.*' => ['string', 'max:60'],
-            'image_files' => ['array', 'max:10'],
+            'image_files' => ['array', 'max:'.(int) (auth()->user()?->feature('max_images_per_listing') ?? 10)],
             'image_files.*' => ['image', 'max:4096'],
         ];
     }

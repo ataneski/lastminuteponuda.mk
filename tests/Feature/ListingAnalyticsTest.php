@@ -42,7 +42,7 @@ it('shows free upgrade prompt to free-tier owners', function () {
     $this->actingAs($freeOwner)
         ->get(route('listings.analytics', $listing))
         ->assertOk()
-        ->assertSee('достапна само за Pro')
+        ->assertSee('не е дел од твојот план')
         ->assertSee('42'); // existing total views shown as preview
 });
 

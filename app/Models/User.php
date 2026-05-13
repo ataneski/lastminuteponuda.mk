@@ -59,14 +59,22 @@ class User extends Authenticatable
      * Mirrors the seeded 'free' tier.
      */
     public const FALLBACK_FREE_FEATURES = [
-        'max_active_listings'        => 3,
-        'featured_boosts_per_month'  => 0,
-        'analytics_enabled'          => false,
-        'social_posts_per_month'     => 0,
-        'verified_badge'             => false,
-        'whatsapp_intake'            => false,
-        'ai_wizard'                  => true,
-        'custom_branding'            => false,
+        'max_active_listings'       => 3,
+        'max_images_per_listing'    => 5,
+        'max_draft_listings'        => 3,
+        'featured_boosts_per_month' => 0,
+        'social_posts_per_month'    => 0,
+        'homepage_featured'         => false,
+        'ai_wizard'                 => true,
+        'whatsapp_intake'           => false,
+        'bulk_import'               => false,
+        'api_access'                => false,
+        'analytics_enabled'         => false,
+        'per_listing_analytics'     => false,
+        'custom_branding'           => false,
+        'verified_badge'            => false,
+        'priority_support'          => false,
+        'dedicated_account_manager' => false,
     ];
 
     public const FREE_TIER_ACTIVE_LIMIT = 3;

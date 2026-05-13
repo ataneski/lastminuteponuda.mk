@@ -1,33 +1,40 @@
-@extends('layouts.app')
+@extends('layouts.admin', ['active' => 'agencies'])
 
-@section('title', 'Admin — Агенции')
+@section('title', 'Агенции — admin')
+
+@section('actions')
+    <a href="{{ route('admin.agencies.create') }}"
+        class="inline-flex items-center gap-1.5 rounded-md bg-sky-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-sky-700">
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+        Нова агенција
+    </a>
+@endsection
 
 @section('content')
-    <div class="mx-auto max-w-7xl px-4 py-8">
-        <h1 class="text-2xl font-bold text-slate-900 mb-2">Агенции</h1>
-        @include('admin._nav', ['active' => 'agencies'])
-
-        <div class="mb-4 flex items-center justify-between gap-3 flex-wrap">
-            <form method="GET" class="flex items-center gap-2">
+    <div class="flex items-center justify-between mb-6 gap-3 flex-wrap">
+        <h1 class="text-2xl font-semibold text-slate-900">Агенции</h1>
+        <form method="GET" class="flex items-center gap-2">
+            <div class="relative">
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.2-5.2m2.2-5.3a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z"/></svg>
                 <input type="search" name="q" value="{{ request('q') }}"
-                    placeholder="Пребарај по име, email, slug…"
-                    class="rounded-md border-slate-300 text-sm w-72">
-                <button type="submit" class="btn-secondary text-sm">Барај</button>
-            </form>
-            <a href="{{ route('admin.agencies.create') }}" class="btn-primary">+ Нова агенција</a>
-        </div>
+                    placeholder="Пребарај…"
+                    class="rounded-md border-slate-300 text-sm pl-9 pr-3 py-1.5 w-72">
+            </div>
+            <button type="submit" class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Барај</button>
+        </form>
+    </div>
 
-        <div class="rounded-lg border border-slate-200 bg-white shadow-sm overflow-x-auto">
+        <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-x-auto">
             <table class="w-full text-sm">
-                <thead class="bg-slate-50 text-left text-xs uppercase text-slate-500">
+                <thead class="bg-slate-50/80 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
                     <tr>
-                        <th class="px-3 py-2">Агенција</th>
-                        <th class="px-3 py-2">Email</th>
-                        <th class="px-3 py-2">Tier</th>
-                        <th class="px-3 py-2">До</th>
-                        <th class="px-3 py-2 text-right">Огласи</th>
-                        <th class="px-3 py-2">Статус</th>
-                        <th class="px-3 py-2">Акции</th>
+                        <th class="px-4 py-3">Агенција</th>
+                        <th class="px-4 py-3">Email</th>
+                        <th class="px-4 py-3">Tier</th>
+                        <th class="px-4 py-3">До</th>
+                        <th class="px-4 py-3 text-right">Огласи</th>
+                        <th class="px-4 py-3">Статус</th>
+                        <th class="px-4 py-3">Акции</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -113,5 +120,4 @@
         </div>
 
         <div class="mt-4">{{ $agencies->links() }}</div>
-    </div>
 @endsection
