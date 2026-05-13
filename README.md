@@ -63,8 +63,13 @@ composer run dev
 | `/agencija/oglas/{id}/analitika` | `listings.analytics` | auth+owner+pro | Per-listing аналитика со 7/30/90-дневен chart |
 | `/agencija/oglas/{id}` (DELETE) | `listings.destroy` | auth+owner | Бришење — само сопственикот |
 | `/agencija/moi-oglasi` | `listings.mine` | auth | Сите огласи на најавената агенција |
-| `/admin` | `admin.index` | admin | Сите агенции, tier ажурирање |
-| `/admin/listings` | `admin.listings` | admin | Сите огласи, featured boost |
+| `/admin` | `admin.index` | admin | Преглед на stats |
+| `/admin/agencii` | `admin.agencies` | admin | Список + tier ажурирање + suspend + delete |
+| `/admin/agencii/nova` | `admin.agencies.create` | admin | Мануелно создавање агенција |
+| `/admin/listings` | `admin.listings` | admin | Список + boost/un-boost + suspend + delete |
+| `/admin/tiers` | `admin.tiers` | admin | Tiers (планови) преглед |
+| `/admin/tiers/nov` | `admin.tiers.create` | admin | Креирање custom tier со feature toggles |
+| `/admin/tiers/{key}/uredi` | `admin.tiers.edit` | admin | Уредување tier — toggle/числа на функционалности |
 | `/dashboard` | `dashboard` | auth | Redirect → `listings.mine` |
 | `/profile` | `profile.edit` | auth | Профил на корисникот (Breeze) |
 
@@ -204,7 +209,7 @@ Flow:
 php artisan test
 ```
 
-196 теста (558 assertions) во `tests/Feature/`:
+216 теста (619 assertions) во `tests/Feature/`:
 
 - `ListingPagesTest` — рендерирање, 404, auth gating, isolation
 - `ListingFormTest` — валидација, создавање, features, image upload
@@ -241,6 +246,11 @@ php artisan test
 - `OauthLoginTest` — Socialite redirect/callback (mocked), customer
   creation, returning user, email-based linking, error handling,
   complete-profile flow, OAuth button gating
+- `AdminPanelTest` — admin role separation, nav split, suspension
+  (login blocked, listings hidden), admin CRUD for agencies (create,
+  delete, self-protection), suspend + delete для огласи, tier CRUD
+  с feature toggles, refusing delete на tier со корисници, cap reflects
+  tier updates, role gating
 - Breeze auth тестови (registration, login, password reset, profile)
 
 ## Безбедност (по дизајн)

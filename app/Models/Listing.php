@@ -37,6 +37,8 @@ class Listing extends Model
         'published_at',
         'ai_generated_at',
         'ai_raw_response',
+        'suspended_at',
+        'suspension_reason',
         'agency_name',
         'agency_contact',
         'title',
@@ -66,6 +68,7 @@ class Listing extends Model
             'featured_until' => 'datetime',
             'published_at' => 'datetime',
             'ai_generated_at' => 'datetime',
+            'suspended_at' => 'datetime',
             'ai_raw_response' => 'array',
             'features' => 'array',
             'hotel_stars' => 'integer',
@@ -77,16 +80,38 @@ class Listing extends Model
     }
 
     /**
-     * Active = published AND not expired. Drafts (published_at IS NULL)
-     * are explicitly excluded from public views.
+     * Active = published AND not expired AND not suspended. Drafts
+     * (published_at IS NULL) are excluded from public views.
      */
     public function scopeActive($query)
     {
         return $query
             ->whereNotNull('published_at')
+            ->whereNull('suspended_at')
             ->where(function ($q) {
                 $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
             });
+    }
+
+    public function isSuspended(): bool
+    {
+        return $this->suspended_at !== null;
+    }
+
+    public function suspend(?string $reason = null): void
+    {
+        $this->forceFill([
+            'suspended_at' => now(),
+            'suspension_reason' => $reason,
+        ])->save();
+    }
+
+    public function unsuspend(): void
+    {
+        $this->forceFill([
+            'suspended_at' => null,
+            'suspension_reason' => null,
+        ])->save();
     }
 
     public function scopeDraft($query)

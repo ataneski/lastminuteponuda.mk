@@ -60,10 +60,31 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [AdminController::class, 'index'])->name('index');
+
+    // Agencies
+    Route::get('/agencii', [AdminController::class, 'agencies'])->name('agencies');
+    Route::get('/agencii/nova', [AdminController::class, 'createAgencyForm'])->name('agencies.create');
+    Route::post('/agencii', [AdminController::class, 'storeAgency'])->name('agencies.store');
     Route::patch('/users/{user}/tier', [AdminController::class, 'updateUserTier'])->name('users.update-tier');
+    Route::post('/users/{user}/suspend', [AdminController::class, 'suspendAgency'])->name('users.suspend');
+    Route::delete('/users/{user}/suspend', [AdminController::class, 'unsuspendAgency'])->name('users.unsuspend');
+    Route::delete('/users/{user}', [AdminController::class, 'destroyAgency'])->name('users.destroy');
+
+    // Listings
     Route::get('/listings', [AdminController::class, 'listings'])->name('listings');
     Route::post('/listings/{listing}/feature', [AdminController::class, 'featureListing'])->name('listings.feature');
     Route::delete('/listings/{listing}/feature', [AdminController::class, 'unfeatureListing'])->name('listings.unfeature');
+    Route::post('/listings/{listing}/suspend', [AdminController::class, 'suspendListing'])->name('listings.suspend');
+    Route::delete('/listings/{listing}/suspend', [AdminController::class, 'unsuspendListing'])->name('listings.unsuspend');
+    Route::delete('/listings/{listing}', [AdminController::class, 'destroyListing'])->name('listings.destroy');
+
+    // Tiers
+    Route::get('/tiers', [AdminController::class, 'tiers'])->name('tiers');
+    Route::get('/tiers/nov', [AdminController::class, 'createTierForm'])->name('tiers.create');
+    Route::post('/tiers', [AdminController::class, 'storeTier'])->name('tiers.store');
+    Route::get('/tiers/{tier:key}/uredi', [AdminController::class, 'editTierForm'])->name('tiers.edit');
+    Route::patch('/tiers/{tier:key}', [AdminController::class, 'updateTier'])->name('tiers.update');
+    Route::delete('/tiers/{tier:key}', [AdminController::class, 'destroyTier'])->name('tiers.destroy');
 });
 
 // Public agency profile (must be defined AFTER specific /agencija/* routes

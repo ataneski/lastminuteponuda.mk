@@ -39,8 +39,10 @@ class ListingController extends Controller
 
     public function show(Listing $listing): View
     {
-        $hidden = $listing->isExpired() || $listing->isDraft();
-        if ($hidden && (! auth()->check() || $listing->user_id !== auth()->id())) {
+        $isOwner = auth()->check() && $listing->user_id === auth()->id();
+        $isAdmin = auth()->check() && auth()->user()->isAdmin();
+        $hidden = $listing->isExpired() || $listing->isDraft() || $listing->isSuspended();
+        if ($hidden && ! $isOwner && ! $isAdmin) {
             abort(404);
         }
 

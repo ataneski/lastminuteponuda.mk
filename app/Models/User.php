@@ -41,6 +41,8 @@ class User extends Authenticatable
 
     public const ROLE_CUSTOMER = 'customer';
 
+    public const ROLE_ADMIN = 'admin';
+
     public const TIER_FREE = 'free';
     public const TIER_PRO = 'pro';
     public const TIER_PREMIUM = 'premium';
@@ -49,6 +51,22 @@ class User extends Authenticatable
         self::TIER_FREE => 'Free',
         self::TIER_PRO => 'Pro',
         self::TIER_PREMIUM => 'Premium',
+    ];
+
+    /**
+     * Fallback feature values used when a user's tier is missing from
+     * the tiers table (e.g. seed data, edge cases during admin edits).
+     * Mirrors the seeded 'free' tier.
+     */
+    public const FALLBACK_FREE_FEATURES = [
+        'max_active_listings'        => 3,
+        'featured_boosts_per_month'  => 0,
+        'analytics_enabled'          => false,
+        'social_posts_per_month'     => 0,
+        'verified_badge'             => false,
+        'whatsapp_intake'            => false,
+        'ai_wizard'                  => true,
+        'custom_branding'            => false,
     ];
 
     public const FREE_TIER_ACTIVE_LIMIT = 3;
@@ -70,10 +88,48 @@ class User extends Authenticatable
             'password' => 'hashed',
             'subscription_until' => 'datetime',
             'is_admin' => 'boolean',
+            'suspended_at' => 'datetime',
             'marketing_consent' => 'boolean',
             'marketing_consent_at' => 'datetime',
             'wa_paired_at' => 'datetime',
         ];
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === self::ROLE_ADMIN || (bool) $this->is_admin;
+    }
+
+    public function isSuspended(): bool
+    {
+        return $this->suspended_at !== null;
+    }
+
+    public function tier(): ?Tier
+    {
+        if (! $this->subscription_tier) {
+            return null;
+        }
+        // Cached on the user instance per request.
+        return $this->relationLoaded('tierModel')
+            ? $this->getRelation('tierModel')
+            : Tier::where('key', $this->subscription_tier)->first();
+    }
+
+    public function feature(string $key, mixed $default = null): mixed
+    {
+        $tier = $this->tier();
+        if ($tier) {
+            $sentinel = new \stdClass; // unique marker; can't collide with stored value
+            $value = $tier->feature($key, $sentinel);
+            if ($value !== $sentinel) {
+                return $value;
+            }
+        }
+
+        return array_key_exists($key, self::FALLBACK_FREE_FEATURES)
+            ? self::FALLBACK_FREE_FEATURES[$key]
+            : $default;
     }
 
     public function isAgency(): bool
@@ -165,8 +221,8 @@ class User extends Authenticatable
     }
 
     /**
-     * The user's effective tier — falls back to "free" if a paid tier
-     * has expired (subscription_until in the past).
+     * The user's effective tier KEY — falls back to "free" if the
+     * subscription has expired (subscription_until in the past).
      */
     public function effectiveTier(): string
     {
@@ -183,7 +239,19 @@ class User extends Authenticatable
 
     public function isPro(): bool
     {
-        return in_array($this->effectiveTier(), [self::TIER_PRO, self::TIER_PREMIUM], true);
+        // "Pro" semantically = unlimited listings AND analytics. Read from tier features.
+        $effective = $this->effectiveTier();
+        if ($effective === self::TIER_FREE) {
+            return false;
+        }
+        // If we can't load the tier (e.g. legacy), trust the key name.
+        $tier = $this->tier();
+        if (! $tier) {
+            return in_array($effective, [self::TIER_PRO, self::TIER_PREMIUM], true);
+        }
+
+        return $tier->feature('max_active_listings') === null
+            && $tier->feature('analytics_enabled') === true;
     }
 
     public function isPremium(): bool
@@ -192,15 +260,14 @@ class User extends Authenticatable
     }
 
     /**
-     * Free tier is capped at FREE_TIER_ACTIVE_LIMIT (active, non-expired)
-     * listings PLUS recent drafts (created in the last 24h). Without the
-     * draft component a free user could otherwise spawn unlimited drafts
-     * via the AI wizard / WhatsApp flow without ever publishing them.
-     * Pro/Premium are unlimited.
+     * Listing cap: if the tier has max_active_listings === null, unlimited.
+     * Otherwise count active (published + non-expired) + recent drafts
+     * against the configured ceiling.
      */
     public function canCreateListing(): bool
     {
-        if ($this->isPro()) {
+        $cap = $this->feature('max_active_listings');
+        if ($cap === null) {
             return true;
         }
 
@@ -218,7 +285,7 @@ class User extends Authenticatable
             ->where('created_at', '>=', now()->subDay())
             ->count();
 
-        return ($active + $recentDrafts) < self::FREE_TIER_ACTIVE_LIMIT;
+        return ($active + $recentDrafts) < (int) $cap;
     }
 
     public function activeListingCount(): int
@@ -228,5 +295,21 @@ class User extends Authenticatable
                 $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
             })
             ->count();
+    }
+
+    public function suspend(?string $reason = null): void
+    {
+        $this->forceFill([
+            'suspended_at' => now(),
+            'suspension_reason' => $reason,
+        ])->save();
+    }
+
+    public function unsuspend(): void
+    {
+        $this->forceFill([
+            'suspended_at' => null,
+            'suspension_reason' => null,
+        ])->save();
     }
 }
