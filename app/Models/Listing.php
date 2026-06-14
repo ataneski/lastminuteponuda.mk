@@ -57,6 +57,7 @@ class Listing extends Model
         'description',
         'features',
         'image_url',
+        'views_count',
     ];
 
     protected function casts(): array

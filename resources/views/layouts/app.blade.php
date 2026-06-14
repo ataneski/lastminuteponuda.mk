@@ -60,6 +60,7 @@
                     @elseif ($u->isAgency())
                         <a href="{{ route('listings.mine') }}" class="text-sm font-medium text-slate-600 hover:text-slate-900">Мои огласи</a>
                         <a href="{{ route('agency.analytics') }}" class="text-sm font-medium text-slate-600 hover:text-slate-900">Аналитика</a>
+                        <a href="{{ route('agency.import-sources') }}" class="text-sm font-medium text-slate-600 hover:text-slate-900">Auto-import</a>
                         <a href="{{ route('agency.profile.edit') }}" class="text-sm font-medium text-slate-600 hover:text-slate-900">Профил</a>
                         <a href="{{ route('listings.create-ai') }}" class="btn-primary">✨ Нов оглас (AI)</a>
                     @else

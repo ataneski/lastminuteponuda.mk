@@ -154,4 +154,200 @@ class GeminiClient
    детали на крај. Избегни блурликани/темни слики на врвот.
 PROMPT;
     }
+
+    /**
+     * Fetch an external URL and extract a list of last-minute offers
+     * from its HTML. Returns ['success' => bool, 'listings' => [...], ...].
+     *
+     * Each listing in the array has the same shape as a Listing model
+     * (subset of fields). Missing fields are null and the agency fills
+     * them in during review.
+     */
+    public function extractListingsFromUrl(string $url): array
+    {
+        if (! config('services.gemini.key')) {
+            return ['success' => false, 'error' => 'gemini_key_missing'];
+        }
+
+        // Fetch HTML with a realistic browser user agent. Some sites
+        // block default Guzzle/Laravel UA.
+        try {
+            $response = Http::timeout(30)
+                ->withHeaders([
+                    'User-Agent' => 'Mozilla/5.0 (compatible; lastminuteponudaBot/1.0; +https://lastminuteponuda.mk/bot)',
+                    'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'Accept-Language' => 'mk,sr,bg,en;q=0.7',
+                ])
+                ->get($url);
+        } catch (\Throwable $e) {
+            return ['success' => false, 'error' => 'fetch_failed: '.$e->getMessage()];
+        }
+
+        if (! $response->successful()) {
+            return ['success' => false, 'error' => 'http_'.$response->status()];
+        }
+
+        $html = $response->body();
+        if (strlen($html) < 200) {
+            return ['success' => false, 'error' => 'empty_or_too_small'];
+        }
+
+        // Strip <script>, <style>, <svg>, <noscript> to cut tokens.
+        $html = preg_replace('/<(script|style|noscript|svg)\b[^<]*(?:(?!<\/\1>)<[^<]*)*<\/\1>/is', '', $html);
+        // Hard cap on size — Gemini handles up to ~1MB easily but no need
+        // to send more than 200KB of cleaned HTML.
+        $html = mb_substr($html, 0, 200_000);
+
+        $body = [
+            'contents' => [['parts' => [['text' => $this->extractionPrompt($url, $html)]]]],
+            'generationConfig' => [
+                'temperature' => 0.2,
+                'response_mime_type' => 'application/json',
+                'response_schema' => $this->extractionResponseSchema(),
+            ],
+        ];
+
+        $endpoint = rtrim(config('services.gemini.endpoint'), '/').
+            '/models/'.config('services.gemini.model').
+            ':generateContent?key='.config('services.gemini.key');
+
+        try {
+            $resp = Http::timeout(60)->retry(2, 1000, throw: false)->post($endpoint, $body);
+        } catch (ConnectionException $e) {
+            return ['success' => false, 'error' => 'gemini_connection_failed'];
+        }
+
+        if (! $resp->successful()) {
+            Log::warning('Gemini extraction non-2xx', ['status' => $resp->status()]);
+            return ['success' => false, 'error' => 'gemini_http_'.$resp->status()];
+        }
+
+        $rawText = data_get($resp->json(), 'candidates.0.content.parts.0.text');
+        if (! $rawText) {
+            return ['success' => false, 'error' => 'gemini_empty_response'];
+        }
+
+        $parsed = json_decode($rawText, true);
+        if (! is_array($parsed) || ! isset($parsed['listings']) || ! is_array($parsed['listings'])) {
+            return ['success' => false, 'error' => 'malformed_json', 'raw' => $rawText];
+        }
+
+        // Normalise + resolve relative image URLs to absolute.
+        $base = parse_url($url);
+        $origin = isset($base['scheme'], $base['host']) ? "{$base['scheme']}://{$base['host']}" : '';
+        $listings = [];
+        foreach ($parsed['listings'] as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $row['image_urls'] = array_values(array_filter(
+                array_map(
+                    fn ($u) => $this->absoluteUrl((string) $u, $url, $origin),
+                    $row['image_urls'] ?? []
+                ),
+                fn ($u) => $u !== null
+            ));
+            $row['features'] = array_values(array_filter(
+                $row['features'] ?? [],
+                fn ($f) => is_string($f) && trim($f) !== ''
+            ));
+            $listings[] = $row;
+        }
+
+        return [
+            'success' => true,
+            'listings' => $listings,
+            'usage' => data_get($resp->json(), 'usageMetadata'),
+        ];
+    }
+
+    private function absoluteUrl(string $maybeRelative, string $pageUrl, string $origin): ?string
+    {
+        if ($maybeRelative === '') {
+            return null;
+        }
+        if (str_starts_with($maybeRelative, 'http://') || str_starts_with($maybeRelative, 'https://')) {
+            return $maybeRelative;
+        }
+        if (str_starts_with($maybeRelative, '//')) {
+            return 'https:'.$maybeRelative;
+        }
+        if (str_starts_with($maybeRelative, '/')) {
+            return $origin.$maybeRelative;
+        }
+        // Resolve against the page URL's directory
+        $parts = parse_url($pageUrl);
+        if (! isset($parts['scheme'], $parts['host'])) {
+            return null;
+        }
+        $dir = isset($parts['path']) ? rtrim(dirname($parts['path']), '/') : '';
+
+        return "{$parts['scheme']}://{$parts['host']}{$dir}/{$maybeRelative}";
+    }
+
+    private function extractionPrompt(string $url, string $html): string
+    {
+        return <<<PROMPT
+Од HTML-от подолу, извлечи СИТЕ last-minute туристички понуди. Се работи за
+македонска агенциска страница ({$url}). Врати JSON со полето "listings" (низа).
+
+За секоја понуда извлечи (што може да најдеш):
+- title (предложи краток наслов на македонски, на пр. "7 ноќи Анталија — Royal Seginus 5★")
+- hotel_name (име на хотелот)
+- destination (град/регион)
+- country (држава)
+- hotel_stars (1–5, цел број; пробај да го најдеш или procени)
+- board_type — еден од: noBoard, breakfast, halfBoard, fullBoard, allInclusive, ultraAllInclusive
+- transport — еден од: bus, plane, ownTransport, ferry
+- departure_date (Y-m-d ако е достапен)
+- return_date (Y-m-d ако е достапен)
+- nights (цел број, ако е достапен)
+- price_per_person (цел број, без валута знак)
+- currency — еден од: EUR, MKD, USD (стандардно EUR ако цената е €/EUR; MKD ако е денари)
+- available_seats (по можност, инаку 2)
+- description (краток опис на македонски, 2–4 реченици)
+- features (низа од стрингови, на пр. ["Базен", "All inclusive", "Wi-Fi"])
+- image_urls (низа од src URL-и на сликите на понудата; апсолутни ако се можно, или релативни — ние ќе ги поправиме)
+
+Ако едно поле го нема — користи null. Не измислувај термини/цени.
+Ако HTML-от воопшто нема last-minute понуди, врати празна низа.
+
+HTML:
+{$html}
+PROMPT;
+    }
+
+    private function extractionResponseSchema(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'listings' => [
+                    'type' => 'array',
+                    'items' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'title' => ['type' => 'string', 'nullable' => true],
+                            'hotel_name' => ['type' => 'string', 'nullable' => true],
+                            'destination' => ['type' => 'string', 'nullable' => true],
+                            'country' => ['type' => 'string', 'nullable' => true],
+                            'hotel_stars' => ['type' => 'integer', 'nullable' => true],
+                            'board_type' => ['type' => 'string', 'nullable' => true],
+                            'transport' => ['type' => 'string', 'nullable' => true],
+                            'departure_date' => ['type' => 'string', 'nullable' => true],
+                            'return_date' => ['type' => 'string', 'nullable' => true],
+                            'nights' => ['type' => 'integer', 'nullable' => true],
+                            'price_per_person' => ['type' => 'integer', 'nullable' => true],
+                            'currency' => ['type' => 'string', 'nullable' => true],
+                            'available_seats' => ['type' => 'integer', 'nullable' => true],
+                            'description' => ['type' => 'string', 'nullable' => true],
+                            'features' => ['type' => 'array', 'items' => ['type' => 'string']],
+                            'image_urls' => ['type' => 'array', 'items' => ['type' => 'string']],
+                        ],
+                    ],
+                ],
+            ],
+            'required' => ['listings'],
+        ];
+    }
 }

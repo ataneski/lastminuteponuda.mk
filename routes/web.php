@@ -3,6 +3,7 @@
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AgencyController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\ImportSourceController;
 use App\Http\Controllers\ListingController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\WhatsAppWebhookController;
@@ -35,6 +36,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/agencija/oglas/{listing}/uredi', [ListingController::class, 'edit'])->name('listings.edit');
     Route::get('/agencija/oglas/{listing}/analitika', [ListingController::class, 'analytics'])->name('listings.analytics');
     Route::delete('/agencija/oglas/{listing}', [ListingController::class, 'destroy'])->name('listings.destroy');
+
+    // Auto-import from agency website
+    Route::get('/agencija/auto-import', [ImportSourceController::class, 'index'])->name('agency.import-sources');
+    Route::get('/agencija/auto-import/nov', [ImportSourceController::class, 'create'])->name('agency.import-sources.create');
+    Route::post('/agencija/auto-import', [ImportSourceController::class, 'store'])->name('agency.import-sources.store');
+    Route::get('/agencija/auto-import/{importSource}', [ImportSourceController::class, 'show'])->name('agency.import-sources.show');
+    Route::post('/agencija/auto-import/{importSource}/sync', [ImportSourceController::class, 'sync'])->name('agency.import-sources.sync');
+    Route::post('/agencija/auto-import/{importSource}/toggle', [ImportSourceController::class, 'toggle'])->name('agency.import-sources.toggle');
+    Route::delete('/agencija/auto-import/{importSource}', [ImportSourceController::class, 'destroy'])->name('agency.import-sources.destroy');
 
     // Default landing for authenticated users; differs by role.
     Route::get('/dashboard', function () {
